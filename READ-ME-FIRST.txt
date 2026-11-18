@@ -1,0 +1,33 @@
+SCHLUSS – the complete website folder (version 11)
+====================================================
+
+SO THAT index.html JUST WORKS (do this once)
+  1. Copy your "storage" folder from your previous SCHLUSS folder into this one.
+  2. Close any window where the website is already running (npm start, or the START.bat window).
+  3. Double-click INSTALL-AUTOSTART.bat.
+  From then on the website runs by itself in the background whenever you sign in to Windows – no window to keep
+  open, nothing to start. Double-click index.html and the website opens.
+  If you move or rename this folder, run INSTALL-AUTOSTART.bat again. To switch it off: REMOVE-AUTOSTART.bat.
+  If the website ever doesn't open, the reason is at the end of storage\logs\website.log.
+
+TO RUN THE WEBSITE BY HAND INSTEAD
+  1. Copy your "storage" folder from your previous SCHLUSS folder into this one (your pictures and covers).
+  2. Double-click START.bat   – a black window opens and the website opens in your browser.
+     Keep the black window open while you use the website. Close it to stop the website.
+  3. Any time later, double-click index.html – it opens the website (and tells you to start it if it isn't running).
+
+  The first start takes a few minutes (it installs the packages once). After that it takes a few seconds.
+
+TO BACK UP EVERYTHING
+  Double-click BACKUP.bat – your database and uploaded files are copied into the "backups" folder.
+
+WHAT THE WEBSITE NEEDS ON A COMPUTER
+  - Node.js (https://nodejs.org, LTS version)
+  - MySQL or MariaDB with your SCHLUSS database (already on your computer)
+  - The .env settings file (already in this folder)
+  Your products, videos, customers and settings are in the DATABASE, not in this folder. Copying this folder to
+  another computer does not copy them – use BACKUP.bat here and "npm run restore" there (see docs/GO-LIVE.md).
+
+PUTTING IT ON THE INTERNET (schluss.co.za)
+  Copying this folder – or index.html – into ordinary web hosting does NOT work: the website is a program that
+  must be running on the server, with a database. See docs/GO-LIVE.md for the steps and what to ask your host.

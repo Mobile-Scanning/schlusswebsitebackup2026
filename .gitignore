@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.angular/
+.env
+storage/
+*.log
+.DS_Store
+storage/
+backups/

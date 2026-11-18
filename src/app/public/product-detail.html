@@ -1,0 +1,325 @@
+@if (missing()) {
+  <sch-not-found />
+} @else if (p(); as p) {
+  <section class="hero zone zone-accent">
+    <sch-puzzle-field [hues]="fieldHues()" [density]="0.7" [strength]="0.45" calm="left" />
+    <div class="art" data-land aria-hidden="true">
+      <svg viewBox="-20 -60 360 260">
+        @for (a of art(); track $index) {
+          <g [attr.transform]="'translate(' + a.x + ' ' + a.y + ') rotate(' + a.r + ' 100 100) scale(' + a.s + ')'">
+            <path class="ap" [class.hero-piece]="a.hero" [attr.d]="a.d" [attr.opacity]="a.o" [style.--i]="$index" />
+          </g>
+        }
+      </svg>
+    </div>
+    <div class="wrap hero-in">
+      <nav class="crumbs" aria-label="Breadcrumb">
+        <a routerLink="/products">Products</a>
+        @if (p.category) { <span>/</span><a routerLink="/products" [queryParams]="{ category: p.category.slug }">{{ p.category.name }}</a> }
+      </nav>
+      <div class="head">
+        <div class="logo">
+          @if (p.logo) { <img [src]="p.logo" [alt]="p.name + ' logo'" width="96" height="96" /> } @else { <sch-mark [size]="48" ink="#E9EDF2" gap="var(--surface)" /> }
+        </div>
+        <div>
+          @if (isLearning()) { <span class="chip-status st-available">{{ offeringName[p.offeringType] }}</span> }
+          @else { <span class="chip-status" [class]="'chip-status st-' + p.status">{{ statusLabel() }}</span> }
+          @if (p.category) { <span class="mono catname">{{ p.category.name }}</span> }
+          <h1>{{ p.name }}</h1>
+          @if (p.tagline) { <p class="tag">{{ p.tagline }}</p> }
+        </div>
+      </div>
+      @if (p.shortDescription) { <p class="lead">{{ p.shortDescription }}</p> }
+      <dl class="facts">
+        @if (soon()) {
+          <div><dt>Expected</dt><dd>{{ p.expectedRelease ? (p.expectedRelease | date: 'MMMM y') : 'To be announced' }}</dd></div>
+        } @else if (p.plans.length) {
+          <div><dt>Pricing</dt><dd>{{ priceSummary() }}</dd></div>
+        } @else if (isLearning()) {
+          <div><dt>Format</dt><dd>{{ offeringName[p.offeringType] }}</dd></div>
+          @if (libraryCount()) { <div><dt>{{ p.offeringType === 'training' ? 'Lessons' : 'Videos' }}</dt><dd>{{ libraryCount() }}</dd></div> }
+        }
+        @if (p.demo) { <div><dt>Demo</dt><dd>{{ p.demo.days }} days</dd></div> } @else if (trialOn()) { <div><dt>Free trial</dt><dd>{{ p.trialDays }} days</dd></div> }
+        @if (latest(); as v) { <div><dt>Latest version</dt><dd>{{ v.version }}</dd></div> }
+        @if (p.platforms.length) { <div><dt>Runs on</dt><dd>@for (pl of p.platforms; track pl) { {{ platformLabel[pl] ?? pl }}@if (!$last) {, } }</dd></div> }
+      </dl>
+      <div class="ctas">
+        @if (hasDemo()) { <a class="btn btn-primary" routerLink="." fragment="demo">{{ soon() ? 'Request an early demo' : 'Demo' }}</a> }
+        @if (p.demo) { <a class="btn btn-primary trial-btn" routerLink="." fragment="download">Download the {{ p.demo.days }}-day demo</a> }
+        @else if (trialOn()) { <a class="btn btn-primary trial-btn" routerLink="." fragment="trial">Free {{ p.trialDays }}-day trial</a> }
+        @if (isLearning() && libraryShown()) { <a class="btn btn-primary" routerLink="." fragment="library">{{ p.offeringType === 'training' ? 'Start the course' : 'Start learning' }}</a> }
+        @if (!soon() && p.status !== 'discontinued' && p.offeringFeatures.purchase) {
+          <a class="btn btn-ghost" routerLink="." fragment="buy">Buy / get a quote</a>
+        }
+      </div>
+      @if (p.notice) { <div class="alert notice" role="note"><strong>Important:</strong> {{ p.notice }}</div> }
+      @if (p.status === 'discontinued') { <div class="alert">This product has been discontinued. Existing customers remain supported – <a routerLink="/contact">contact us</a> for alternatives.</div> }
+      @if (p.status === 'unavailable') { <div class="alert">This product is temporarily unavailable for new customers. <a routerLink="/contact">Contact us</a> for details.</div> }
+    </div>
+  </section>
+
+  @if (nav().length > 1) {
+    <nav class="tabs" aria-label="On this page">
+      <div class="wrap tabs-in" #tabs>
+        @for (n of nav(); track n[0]) { <a routerLink="." [fragment]="n[0]" [attr.data-tab]="n[0]" [class.on]="active() === n[0]" (click)="active.set(n[0])">{{ n[1] }}</a> }
+        <span class="tab-ind" aria-hidden="true" [style.transform]="'translateX(' + ind().x + 'px)'" [style.width.px]="ind().w"><svg viewBox="0 0 200 200"><path d="M100 0 L200 0 L200 100 L159 100 L159 92 A15 15 0 1 0 141 92 L141 100 L100 100 Z" /></svg></span>
+      </div>
+    </nav>
+  }
+
+  <div class="wrap content">
+    <!-- Overview -->
+    <section id="overview" class="block">
+      <div class="ov">
+        <div>
+          <h2>Overview</h2>
+          @if (p.description) { <div class="prose">{{ p.description }}</div> } @else { <p class="muted">{{ p.shortDescription }}</p> }
+          @if (p.systemRequirements) { <div class="req card"><h3>System requirements</h3><div class="prose muted">{{ p.systemRequirements }}</div></div> }
+        </div>
+        <figure class="main-img tab lit">
+          @if (p.image) { <img class="hero-img" [src]="p.image" [alt]="p.name" loading="lazy" /> }
+          @else { <div class="img-needed"><span class="mono">Product image to be added</span></div> }
+        </figure>
+      </div>
+    </section>
+
+    <!-- Learning content / courses: lessons come right after the overview -->
+    @if (isLearning()) {
+      <ng-container *ngTemplateOutlet="librarySection; context: { $implicit: p }" />
+    }
+
+    <!-- Product images -->
+    @if (screenshots().length) {
+      <section id="images" class="block" schReveal>
+        <h2>Product images</h2>
+        <div class="shots">
+          @for (s of screenshots(); track $index) {
+            <button type="button" class="shot" (click)="open(s.url, s.caption || s.title)" [attr.aria-label]="'Enlarge: ' + (s.caption || s.title)">
+              <img [src]="s.url" [alt]="s.caption || s.title" loading="lazy" [attr.width]="s.size.width" [attr.height]="s.size.height" />
+            </button>
+          }
+        </div>
+      </section>
+    }
+
+    <!-- Features -->
+    @if (p.features.length || p.benefits.length) {
+      <section id="features" class="block" schReveal>
+        @if (p.features.length) {
+          <h2>Features</h2>
+          <div class="feat">
+            @for (f of p.features; track $index) { <div class="fi"><span class="tick"><sch-icon name="check" [size]="16" /></span><div><h3>{{ f.title }}</h3>@if (f.body) {<p class="muted">{{ f.body }}</p>}</div></div> }
+          </div>
+        }
+        @if (p.benefits.length) {
+          <h2 class="mt">Benefits</h2>
+          <div class="benefits">@for (b of p.benefits; track $index) { <div class="card ben"><h3>{{ b.title }}</h3>@if (b.body) {<p class="muted">{{ b.body }}</p>}</div> }</div>
+        }
+      </section>
+    }
+
+    <!-- Demo: everything configured for this product's demonstration -->
+    @if (hasDemo()) {
+      <section id="demo" class="block demo" schReveal>
+        <span class="eyebrow">Demonstration</span>
+        <h2>See {{ p.name }} in action</h2>
+        <div class="demo-opts">
+          @if (p.demoOptions.interactiveUrl) {
+            <div class="opt">
+              <span class="opt-i" aria-hidden="true">▶</span>
+              <h3>Interactive demo</h3>
+              <p class="muted">Click through {{ p.name }} yourself in your browser.</p>
+              <a class="btn btn-primary" [href]="p.demoOptions.interactiveUrl" target="_blank" rel="noopener">Open the interactive demo ↗</a>
+            </div>
+          }
+          @for (v of demoVideos(); track $index) {
+            <button type="button" class="vt" (click)="play(v)">
+              <span class="thumb" [style.background-image]="v.thumb ? 'url(' + v.thumb + ')' : null"><span class="play" aria-hidden="true">▶</span>@if (v.duration) { <span class="dur mono">{{ v.duration }}</span> }</span>
+              <span class="vt-b"><span class="mono">Demo video</span><strong>{{ v.label }}</strong>@if (v.description) { <span class="muted">{{ v.description }}</span> }</span>
+            </button>
+          }
+        </div>
+        @if (demoEnabled()) {
+          <div class="demo-in">
+            <div>
+              <h3>{{ soon() ? 'Ask for an early demonstration' : 'Book a live demonstration' }}</h3>
+              <p class="muted">Tell us a little about your business and we'll arrange a demonstration that focuses on what matters to you{{ p.demoOptions.scheduled ? ' – online or at your premises' : '' }}.</p>
+            </div>
+            <sch-demo-form [fixedProduct]="p.slug" [hue]="hueKey()" />
+          </div>
+        }
+      </section>
+    }
+
+    <!-- Demo download (registration-gated, server-controlled demo period) -->
+    @if (p.demo) {
+      <section id="download" class="block trial" schReveal>
+        <span class="eyebrow">Demo download</span>
+        <h2>Download the {{ p.name }} demo</h2>
+        <sch-demo-download [slug]="p.slug" [name]="p.name" [demo]="p.demo" [hue]="hueKey()" />
+      </section>
+    }
+
+    <!-- Full installer (authorised customers only – never the demo file) -->
+    @if (p.installer; as ins) {
+      <section id="installer" class="block trial" schReveal>
+        <span class="eyebrow">Full version</span>
+        <h2>Download the full {{ p.name }} installer</h2>
+        <sch-installer-panel [slug]="p.slug" [installer]="ins" />
+      </section>
+    }
+
+    <!-- Free trial (products without a downloadable demo) -->
+    @if (trialOn() && !p.demo) {
+      <section id="trial" class="block trial" schReveal>
+        <span class="eyebrow">Free trial</span>
+        <h2>Try {{ p.name }} free for {{ p.trialDays }} days</h2>
+        <sch-trial-panel [slug]="p.slug" [name]="p.name" [days]="p.trialDays!" [hue]="hueKey()" />
+      </section>
+    }
+
+    @if (!isLearning()) {
+      <ng-container *ngTemplateOutlet="librarySection; context: { $implicit: p }" />
+    }
+
+    <!-- Product videos -->
+    @if (otherVideos().length) {
+      <section id="videos" class="block" schReveal>
+        <h2>Videos</h2>
+        <p class="muted">Every video here is about {{ p.name }}.</p>
+        <div class="vgrid">
+          @for (v of otherVideos(); track $index) {
+            <button type="button" class="vt col" (click)="play(v)">
+              <span class="thumb" [style.background-image]="v.thumb ? 'url(' + v.thumb + ')' : null"><span class="play" aria-hidden="true">▶</span>@if (v.duration) { <span class="dur mono">{{ v.duration }}</span> }</span>
+              <span class="vt-b"><span class="mono">{{ videoRole[v.role] ?? 'Video' }}</span><strong>{{ v.label }}</strong>@if (v.description) { <span class="muted">{{ v.description }}</span> }</span>
+            </button>
+          }
+        </div>
+      </section>
+    }
+
+    <!-- Learning materials -->
+    @if (p.learning.length) {
+      <section id="learning" class="block" schReveal>
+        <h2>Learning materials</h2>
+        <p class="muted">Guides, manuals and lessons for {{ p.name }}.</p>
+        @for (g of learningTypes(); track g.key) {
+          <h3 class="lt-h"><span class="lt-dot" [class]="'lt-dot t-' + g.key"></span>{{ g.label }}</h3>
+          <div class="lgrid">
+            @for (l of g.items; track l.id) {
+              @if (!l.locked && l.url && !l.body && g.key === 'docs') {
+                <a class="lt" [class]="'lt t-' + g.key" [href]="l.url" target="_blank" rel="noopener">
+                  <span class="lt-i" aria-hidden="true">PDF</span>
+                  <span class="lt-b"><span class="mono">{{ sectionLabel[l.section] ?? l.section }}</span><strong>{{ l.title }}</strong>@if (l.summary) { <span class="muted">{{ l.summary }}</span> }</span>
+                  <span class="lt-a">Open ↗</span>
+                </a>
+              } @else {
+                <a class="lt" [class]="'lt t-' + g.key" [routerLink]="['/learning', l.id]">
+                  <span class="lt-i" aria-hidden="true">{{ g.key === 'video' ? '▶' : g.key === 'docs' ? 'PDF' : '✎' }}</span>
+                  <span class="lt-b"><span class="mono">{{ sectionLabel[l.section] ?? l.section }}</span><strong>{{ l.title }}</strong>@if (l.summary) { <span class="muted">{{ l.summary }}</span> }</span>
+                  <span class="lt-a">{{ l.locked ? (l.visibility === 'partner' ? 'Partners only' : 'Sign in to open') : g.key === 'video' ? 'Watch' : 'Read' }}</span>
+                </a>
+              }
+            }
+          </div>
+        }
+      </section>
+    }
+
+    <!-- Pricing -->
+    @if (p.plans.length) {
+      <section id="pricing" class="block" schReveal>
+        <h2>Pricing</h2>
+        <p class="muted">Prices in South African rand unless shown otherwise.@if (trialOn()) { Every new customer can try {{ p.name }} free for {{ p.trialDays }} days.}</p>
+        <div class="plans">
+          @for (pl of p.plans; track pl.id) {
+            @let price = planPrice(pl);
+            <div class="plan" [class.hl]="pl.is_highlighted">
+              @if (pl.is_highlighted) { <span class="pop">Most popular</span> }
+              <h3>{{ pl.name }}</h3>
+              <p class="amount">{{ price.amount }}</p>
+              @if (price.suffix) { <p class="suffix muted">{{ price.suffix }}</p> }
+              @if (pl.max_devices) { <p class="muted small">Up to {{ pl.max_devices }} device{{ pl.max_devices === 1 ? '' : 's' }}</p> }
+              @if (pl.inclusions.length) { <ul>@for (i of pl.inclusions; track $index) {<li>{{ i }}</li>}</ul> }
+              @if (pl.conditions) { <p class="cond muted">{{ pl.conditions }}</p> }
+              <a class="btn btn-block" [class.btn-primary]="pl.is_highlighted" [class.btn-ghost]="!pl.is_highlighted" routerLink="/contact" [queryParams]="{ type: 'purchase', product: p.slug, subject: (pl.model === 'quote' ? 'Quotation request: ' : 'Enquiry: ') + p.name + ' – ' + pl.name }">
+                {{ pl.model === 'quote' ? 'Request a quotation' : pl.model === 'free' ? 'Ask about access' : 'Enquire' }}
+              </a>
+            </div>
+          }
+        </div>
+      </section>
+    }
+
+    <!-- Purchase / quotation enquiry → sales department -->
+    @if (!soon() && p.status !== 'discontinued' && p.offeringFeatures.purchase) {
+      <section id="buy" class="block" schReveal>
+        <span class="eyebrow">Buy {{ p.name }}</span>
+        <h2>Purchase or request a quotation</h2>
+        <sch-purchase-form [slug]="p.slug" [name]="p.name" />
+      </section>
+    }
+
+    <!-- Related resources -->
+    @if (p.versions.length) {
+      <section id="versions" class="block" schReveal>
+        <h2>Versions & release notes</h2>
+        <div class="versions">
+          @for (v of p.versions; track v.version) {
+            <details [open]="$first">
+              <summary>
+                <strong>{{ v.version }}</strong>@if (v.name) { – {{ v.name }} }
+                @if (v.latest) { <span class="badge badge-ok">Latest</span> }
+                @if (v.recommended && !v.latest) { <span class="badge badge-info">Recommended</span> }
+                @if (v.releaseDate) { <span class="muted date">{{ v.releaseDate | date: 'd MMM y' }}</span> }
+              </summary>
+              @if (v.platforms.length) { <p class="muted small">Available for: @for (pl of v.platforms; track pl) { {{ platformLabel[pl] ?? pl }}@if (!$last) {, } }</p> }
+              @if (v.notes) { <div class="prose">{{ v.notes }}</div> }
+              @if (v.requirements) { <p class="muted small prose">Requirements: {{ v.requirements }}</p> }
+            </details>
+          }
+        </div>
+      </section>
+    }
+
+    @if (p.faqs.length) {
+      <section id="faq" class="block" schReveal>
+        <h2>Frequently asked questions</h2>
+        <div class="versions">
+          @for (f of p.faqs; track $index) { <details><summary><strong>{{ f.title }}</strong></summary><div class="prose">{{ f.body }}</div></details> }
+        </div>
+      </section>
+    }
+  </div>
+
+  <!-- Video player: opens with a small puzzle frame -->
+  <dialog #player class="player" (close)="playing.set(null)" (click)="$event.target === player && player.close()">
+    @if (playing(); as v) {
+      <div class="pf">
+        <span class="pc0" aria-hidden="true"></span><span class="pc1" aria-hidden="true"></span><span class="pc2" aria-hidden="true"></span><span class="pc3" aria-hidden="true"></span>
+        <div class="frame">
+          @if (v.safe) { <iframe [src]="v.safe" [title]="v.label" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture; fullscreen" referrerpolicy="strict-origin-when-cross-origin"></iframe> }
+          @else if (v.url) { <video [src]="v.url" controls autoplay></video> }
+        </div>
+        <div class="pf-b"><strong>{{ v.label }}</strong>@if (v.description) { <span class="muted">{{ v.description }}</span> }<button class="btn btn-ghost btn-sm" type="button" (click)="player.close()">Close</button></div>
+      </div>
+    }
+  </dialog>
+
+  <dialog #lightbox class="lb" (close)="shown.set(null)" (click)="lightbox.close()">
+    @if (shown(); as s) { <img [src]="s.url" [alt]="s.title" /><p>{{ s.title }}</p> }
+    <button class="btn btn-ghost btn-sm close" type="button">Close</button>
+  </dialog>
+} @else {
+  <section class="hero"><div class="wrap hero-in loading"><span class="spinner" aria-label="Loading product"></span></div></section>
+}
+
+<!-- Videos, tutorials and lessons (content library) – played inside SCHLUSS -->
+<ng-template #librarySection let-p>
+  <section id="library" class="block" [hidden]="!libraryShown()" schReveal>
+    <span class="eyebrow">{{ p.offeringType === 'training' ? 'Course lessons' : isLearning() ? 'Lessons' : 'Videos & tutorials' }}</span>
+    <h2>{{ p.offeringType === 'training' ? 'Course content' : isLearning() ? 'Learning material' : p.name + ' videos and tutorials' }}</h2>
+    <p class="muted">{{ isLearning() ? 'Choose a lesson to watch it right here on SCHLUSS.' : 'Watch demonstrations, installation guides and training videos right here on SCHLUSS.' }}</p>
+    <sch-content-library [slug]="p.slug" [course]="p.offeringType === 'training'" (loaded)="libraryShown.set($event.total + $event.locked > 0 || !!$event.notice); libraryCount.set($event.total)" />
+  </section>
+</ng-template>

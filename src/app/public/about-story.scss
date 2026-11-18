@@ -1,0 +1,203 @@
+:host { display: block; }
+
+/* ---------------- the experience: one screen, the puzzle is the hero ---------------- */
+.experience {
+  --sw: max(min(100%, 600px), min(88%, 1600px, calc((100svh - 190px) * 16 / 9)));
+  position: relative;
+  isolation: isolate;
+  overflow: clip;
+  min-height: calc(100svh - var(--header-h, 72px));
+  padding: clamp(12px, 1.6vw, 20px) 16px clamp(14px, 1.6vw, 22px);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  background: linear-gradient(180deg, #0d0a3d 0%, #1b1260 48%, #0b0830 100%);
+  color: #eef1fb;
+}
+
+/* background: soft moving light, drifting particles, puzzle fragments at different depths */
+.bg { position: absolute; inset: 0; z-index: -1; pointer-events: none; overflow: hidden; }
+.aurora { position: absolute; inset: -20%; background:
+    radial-gradient(35% 30% at 30% 30%, rgba(123, 92, 255, .45), transparent 70%),
+    radial-gradient(30% 28% at 72% 40%, rgba(20, 194, 176, .28), transparent 70%),
+    radial-gradient(32% 30% at 50% 85%, rgba(231, 69, 140, .25), transparent 70%),
+    radial-gradient(28% 26% at 85% 15%, rgba(50, 130, 246, .35), transparent 70%);
+  filter: blur(20px); animation: aurora 26s ease-in-out infinite alternate; }
+@keyframes aurora { 0% { transform: translate3d(-3%, -2%, 0) rotate(0deg) scale(1); } 100% { transform: translate3d(3%, 2%, 0) rotate(8deg) scale(1.08); } }
+.dot { position: absolute; border-radius: 50%; background: var(--c); opacity: var(--o); box-shadow: 0 0 10px var(--c); animation: rise linear infinite; }
+@keyframes rise { 0% { transform: translate3d(0, 0, 0); } 50% { transform: translate3d(14px, -60px, 0); } 100% { transform: translate3d(-6px, -120px, 0); opacity: 0; } }
+.frag { position: absolute; height: auto; opacity: calc(.18 + var(--z) * .3); filter: blur(calc((1 - var(--z)) * 2px)); animation: fragdrift ease-in-out infinite alternate; }
+.frag path { fill: none; stroke: var(--c); stroke-width: 6; }
+@keyframes fragdrift { from { transform: translate3d(0, 0, 0) rotate(-12deg); } to { transform: translate3d(calc(20px + var(--z) * 30px), calc(-30px - var(--z) * 30px), 0) rotate(18deg); } }
+
+.stage-wrap { display: flex; justify-content: center; }
+.stage {
+  --hue: #3282f6;
+  --blur: 8px;
+  position: relative;
+  width: var(--sw);
+  aspect-ratio: 16 / 9;
+  user-select: none;
+}
+.frame {
+  position: absolute; inset: 0; overflow: hidden; border-radius: clamp(12px, 1.6vw, 24px);
+  box-shadow: 0 40px 90px rgba(4, 4, 30, .65), 0 0 0 1px rgba(255, 255, 255, .14), 0 0 80px rgba(110, 90, 255, .25);
+  background: #120e46;
+  transition: opacity .5s ease, box-shadow .8s ease;
+}
+.frame img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+.base { filter: blur(var(--blur)) saturate(.88) brightness(var(--dim, .75)); transform: scale(1.03); transition: filter 1.4s ease; }
+.full { opacity: 0; transition: opacity 1.1s ease; }
+.stage.sharp .full { opacity: 1; }
+.stage.glow .frame { box-shadow: 0 40px 90px rgba(4, 4, 30, .6), 0 0 0 2px rgba(255, 255, 255, .7), 0 0 60px rgba(143, 188, 255, .9), 0 0 160px rgba(123, 92, 255, .8); }
+.stage.bursting .frame { opacity: .18; }
+
+.board { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+.sharp-piece { animation: unblur 1s ease both; }
+@keyframes unblur { from { opacity: 0; filter: blur(6px); } to { opacity: 1; filter: none; } }
+.outlines path { fill: none; stroke: rgba(255, 255, 255, .22); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+.outlines { transition: opacity 1.2s ease; }
+.stage.sharp .outlines { opacity: .45; }
+.stage.outlines-off .outlines { opacity: 0; }
+
+/* missing pieces: dark holes with a glowing rim */
+.hole-fill { fill: url(#ab-hole); opacity: .9; }
+.hole-edge { fill: none; stroke: rgba(255, 255, 255, .7); stroke-width: 2.2; stroke-dasharray: 7 7; vector-effect: non-scaling-stroke; animation: march 14s linear infinite; }
+.hole { filter: drop-shadow(0 0 6px rgba(140, 160, 255, .45)); animation: breathe 3.4s ease-in-out infinite; }
+.hole.lit { animation: none; filter: drop-shadow(0 0 14px var(--hue)) drop-shadow(0 0 4px var(--hue)); }
+.hole.lit .hole-edge { stroke: var(--hue); stroke-width: 3.5; stroke-dasharray: none; }
+@keyframes march { to { stroke-dashoffset: -140; } }
+@keyframes breathe { 50% { opacity: .8; } }
+.lock { fill: none; stroke: var(--hue); stroke-width: 5; vector-effect: non-scaling-stroke; filter: drop-shadow(0 0 10px var(--hue)); animation: lock 1.3s ease-out forwards; }
+@keyframes lock { 0% { opacity: 1; stroke: #fff; } 30% { opacity: 1; } 100% { opacity: 0; } }
+
+/* the floating pieces (each one is a real piece of the picture) */
+.fp { position: absolute; z-index: 4; transform-origin: 50% 50%; will-change: transform; pointer-events: none; transition: opacity .6s ease; }
+.fp.waiting { opacity: 0; }
+.fp.active { z-index: 7; }
+.drift { width: 100%; height: 100%; animation: drift ease-in-out infinite alternate; }
+@keyframes drift {
+  0% { transform: translate3d(0, 0, 0) rotate(0deg); }
+  33% { transform: translate3d(calc(var(--dx) * 2), calc(var(--dy) * -1.2), 0) rotate(var(--dr)); }
+  66% { transform: translate3d(calc(var(--dx) * -1.4), calc(var(--dy) * -2.4), 0) rotate(calc(var(--dr) * -.7)); }
+  100% { transform: translate3d(calc(var(--dx) * .8), calc(var(--dy) * 1.6), 0) rotate(calc(var(--dr) * .4)); }
+}
+.fp.active .drift { animation: none; }
+.fp svg { display: block; width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 14px 18px rgba(4, 4, 30, .6)); }
+.fp-glow { fill: var(--hue); stroke: var(--hue); stroke-width: 14; stroke-linejoin: round; opacity: .45; filter: blur(8px); transition: opacity .4s; }
+.fp-edge { fill: none; stroke: #fff; stroke-width: 3; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.fp.hl .fp-glow, .fp.active .fp-glow { opacity: .95; stroke-width: 26; }
+
+/* the carried piece stays above the people carrying it */
+.fp.carried { z-index: 6; }
+.fp.carried .drift { animation: none; }
+
+/* the crew */
+.crew { position: absolute; inset: 0; z-index: 5; pointer-events: none; }
+.walker { position: absolute; translate: -50% -94.3%; will-change: left, top; }
+.walker sch-crew-person { transition: transform .25s ease; }
+.walker.flip sch-crew-person { transform: scaleX(-1); }
+.beams { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 5; pointer-events: none; overflow: visible; }
+.bm-glow { stroke-width: 9; opacity: .45; filter: blur(4px); stroke-linecap: round; }
+.bm { stroke: #fff; stroke-width: 2.4; stroke-linecap: round; stroke-dasharray: 6 9; animation: flow .9s linear infinite; opacity: .9; }
+@keyframes flow { to { stroke-dashoffset: -30; } }
+
+/* the centre hole, reserved for the SCHLUSS logo */
+.lh-fill { fill: url(#ab-hole); opacity: .95; }
+.lh-edge { fill: none; stroke: #8fbcff; stroke-width: 2.6; stroke-dasharray: 8 7; vector-effect: non-scaling-stroke; animation: march 12s linear infinite; }
+.logo-hole { filter: drop-shadow(0 0 10px rgba(80, 150, 255, .7)); animation: breathe 2.6s ease-in-out infinite; }
+.stage.logo-call .logo-hole { animation: call 1s ease-in-out infinite; }
+.stage.logo-call .lh-edge { stroke: #fff; stroke-width: 3.6; stroke-dasharray: none; }
+@keyframes call { 0%, 100% { filter: drop-shadow(0 0 10px #3282f6); } 50% { filter: drop-shadow(0 0 26px #8fbcff) drop-shadow(0 0 8px #fff); } }
+
+/* the SCHLUSS logo piece */
+.logo-piece { position: absolute; z-index: 9; transform-origin: 50% 50%; will-change: transform; pointer-events: none; }
+.logo-piece svg { display: block; width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 16px 22px rgba(4, 4, 30, .6)); }
+.lp-glow { fill: #3282f6; stroke: #3282f6; stroke-width: 18; stroke-linejoin: round; opacity: .55; filter: blur(9px); animation: lpglow 2.2s ease-in-out infinite; }
+.lp-edge { fill: none; stroke: #9cc8ff; stroke-width: 2.5; vector-effect: non-scaling-stroke; }
+.logo-piece.placed .lp-glow { opacity: .8; }
+@keyframes lpglow { 50% { opacity: .9; stroke-width: 26; } }
+.lock-ring { position: absolute; z-index: 8; left: 50%; top: 50%; width: 22%; aspect-ratio: 1; border-radius: 50%; border: 4px solid #fff; translate: -50% -50%; pointer-events: none;
+  box-shadow: 0 0 40px #8fbcff, inset 0 0 30px #8fbcff; animation: lockring 1.4s cubic-bezier(.2,.7,.2,1) both; }
+@keyframes lockring { from { scale: .3; opacity: 1; } to { scale: 4.5; opacity: 0; } }
+.lock-wave { position: absolute; z-index: 3; inset: 0; pointer-events: none; border-radius: inherit; mix-blend-mode: screen;
+  background: radial-gradient(circle at 50% 50%, transparent 0, transparent calc(var(--wr) - 14%), rgba(160, 205, 255, .75) var(--wr), transparent calc(var(--wr) + 6%)); animation: wave 2.2s ease-out both; }
+@property --wr { syntax: '<percentage>'; inherits: false; initial-value: 0%; }
+@keyframes wave { from { --wr: 0%; opacity: 1; } 80% { opacity: .9; } to { --wr: 120%; opacity: 0; } }
+.stage.logo-flash .frame { box-shadow: 0 40px 90px rgba(4, 4, 30, .6), 0 0 0 2px rgba(255, 255, 255, .8), 0 0 70px rgba(143, 188, 255, 1), 0 0 180px rgba(123, 92, 255, .9); }
+.stage.bursting .crew { opacity: .25; transition: opacity .4s; }
+.stage .crew { transition: opacity .6s; }
+
+/* the information tile, emerging from its piece */
+.tile { position: absolute; z-index: 6; top: 50%; max-height: calc(100% - 28px); translate: 0 -50%; display: flex; flex-direction: column; border-radius: 22px; transform-origin: 0% 50%; opacity: 0; }
+.tile sch-story-card { min-height: 0; overflow-y: auto; scrollbar-width: thin; border-radius: 22px; animation: hover-float 4.6s ease-in-out infinite; }
+@keyframes hover-float { 50% { transform: translateY(-6px); } }
+
+/* celebration burst, in 3D */
+.burst { position: absolute; inset: 0; z-index: 8; pointer-events: none; perspective: 1400px; transform-style: preserve-3d; }
+.bp { position: absolute; will-change: transform; transform-style: preserve-3d; filter: drop-shadow(0 10px 14px rgba(4, 4, 30, .5)); }
+.bp svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.bp-edge { fill: none; stroke: rgba(255, 255, 255, .6); stroke-width: 1.4; vector-effect: non-scaling-stroke; }
+.flash-burst { position: absolute; left: 50%; top: 52%; width: 40%; aspect-ratio: 1; border-radius: 50%; opacity: 0; transform: translate(-50%, -50%);
+  background: radial-gradient(circle, #fff 0%, rgba(160, 200, 255, .85) 22%, rgba(123, 92, 255, .45) 45%, transparent 70%); mix-blend-mode: screen; }
+.spark { position: absolute; left: 50%; top: 52%; border-radius: 50%; background: var(--c); box-shadow: 0 0 12px var(--c); opacity: 0; }
+.spark.pc { border-radius: 3px 8px 3px 8px; }
+
+/* replay: one small floating, slowly turning, glowing piece */
+.replay { position: absolute; z-index: 9; right: 1.6%; top: 4%; width: clamp(46px, 4.4vw, 66px); height: clamp(46px, 4.4vw, 66px); padding: 0; border: 0; background: none; cursor: pointer; animation: bob 5s ease-in-out infinite, appear .8s cubic-bezier(.2, .8, .2, 1.3) both; }
+.replay svg { width: 100%; height: 100%; overflow: visible; animation: turn 14s linear infinite; filter: drop-shadow(0 10px 18px rgba(0, 0, 0, .5)) drop-shadow(0 0 14px rgba(50, 130, 246, .8)); }
+.replay path:first-child { fill: #3282f6; stroke: #fff; stroke-width: 5; }
+.replay .ic { fill: #fff; }
+.replay:hover svg, .replay:focus-visible svg { filter: drop-shadow(0 10px 18px rgba(0, 0, 0, .5)) drop-shadow(0 0 24px #8fbcff); animation-play-state: paused; }
+.replay:focus-visible { outline: 3px solid #fff; outline-offset: 6px; border-radius: 12px; }
+.tip { position: absolute; right: 0; top: calc(100% + 8px); white-space: nowrap; padding: 7px 12px; border-radius: 8px; background: rgba(10, 10, 46, .92); color: #fff; font: 700 12px/1 var(--f-text); letter-spacing: .1em; text-transform: uppercase; opacity: 0; translate: 0 -4px; transition: opacity .2s, translate .2s; pointer-events: none; }
+.replay:hover .tip, .replay:focus-visible .tip { opacity: 1; translate: 0 0; }
+@keyframes appear { from { opacity: 0; scale: .3; } }
+@keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-9px); } }
+@keyframes turn { to { rotate: 360deg; } }
+
+/* under the puzzle: progress, a few small controls – and at the end the brand statement */
+.story-bar { width: var(--sw); margin: 12px auto 0; min-height: 64px; display: flex; gap: 12px 20px; align-items: center; justify-content: center; flex-wrap: wrap; position: relative; }
+.dots { display: flex; gap: 5px; flex-wrap: wrap; justify-content: center; max-width: 60%; }
+.dots i { width: 10px; height: 10px; border-radius: 3px; background: rgba(255, 255, 255, .18); transition: background .4s, transform .4s; }
+.dots i.on { background: var(--hue); }
+.dots i.cur { background: #fff; transform: scale(1.4); box-shadow: 0 0 8px var(--hue); }
+.ctl { display: flex; gap: 6px; position: absolute; right: 0; }
+.ib { height: 34px; min-width: 34px; padding: 0 8px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, .25); background: rgba(255, 255, 255, .06); color: #dfe5ff; cursor: pointer; display: grid; place-items: center; font: 600 13px/1 var(--f-text); }
+.ib svg { width: 16px; height: 16px; fill: currentColor; }
+.ib:hover:not(:disabled), .ib:focus-visible { background: rgba(255, 255, 255, .16); color: #fff; }
+.ib:disabled { opacity: .35; cursor: default; }
+.statement { text-align: center; animation: stmt 1s cubic-bezier(.2, .8, .2, 1) both; }
+.statement .big { margin: 0; font: 800 clamp(20px, 2.2vw, 32px)/1.15 var(--f-head); text-transform: uppercase; letter-spacing: .05em;
+  background: linear-gradient(90deg, #ff8fb4, #ffd166, #7ef0c4, #8fbcff, #f0a6ff); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.statement .small { margin: 4px 0 0; color: #d5dcff; font-size: clamp(15px, 1.3vw, 18px); letter-spacing: .03em; }
+@keyframes stmt { from { opacity: 0; transform: translateY(14px); letter-spacing: .2em; } }
+
+/* phones & small tablets: the puzzle stays pinned at the top, the tile is read underneath */
+.caption { order: 3; width: min(100%, 620px); margin: 10px auto 0; min-height: 420px; }
+.tile-narrow { opacity: 0; transform-origin: 50% 0%; }
+.experience.narrow { justify-content: flex-start; }
+.experience.narrow .stage-wrap { position: sticky; top: calc(var(--header-h, 72px) + 4px); z-index: 20; padding: 6px 0; margin: 0 -16px; }
+.experience.narrow .story-bar { order: 2; }
+.experience.narrow .ctl { position: static; }
+.experience.narrow .dots { max-width: 100%; }
+@media (max-width: 600px) {
+  .dot:nth-child(2n) { display: none; }
+  .frag:nth-of-type(n + 4) { display: none; }
+}
+
+/* reduced motion: fades only */
+.experience.reduced .aurora, .experience.reduced .dot, .experience.reduced .frag, .experience.reduced .drift, .experience.reduced .hole, .experience.reduced .hole-edge,
+.experience.reduced .replay, .experience.reduced .replay svg, .experience.reduced .tile sch-story-card, .experience.reduced .logo-hole, .experience.reduced .lh-edge, .experience.reduced .lp-glow, .experience.reduced .bm { animation: none; }
+@media (prefers-reduced-motion: reduce) {
+  .aurora, .dot, .frag, .drift, .hole, .hole-edge, .replay, .replay svg { animation: none !important; }
+}
+
+/* short "About us" text under the puzzle */
+.about-us { padding: clamp(40px, 6vw, 72px) 16px clamp(48px, 6vw, 80px); background: linear-gradient(180deg, #0b0830, var(--bg, #0a0c14)); }
+.au-inner { max-width: 760px; margin: 0 auto; text-align: center; }
+.au-eyebrow { font: 700 12px/1 var(--f-text); letter-spacing: .16em; text-transform: uppercase; color: #8fbcff; }
+.about-us h2 { margin: 10px 0 12px; font-size: clamp(24px, 2.6vw, 32px); color: var(--heading, #fff); }
+.au-lead { font-size: clamp(17px, 1.5vw, 19px); color: #dfe5ff; line-height: 1.6; margin: 0 0 12px; }
+.about-us p { color: var(--fg, #c9d1e2); font-size: 16px; line-height: 1.7; margin: 0 0 10px; }
+.au-ctas { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-top: 22px; }

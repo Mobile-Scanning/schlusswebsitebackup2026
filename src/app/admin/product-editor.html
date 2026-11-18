@@ -1,0 +1,406 @@
+<div class="adm-head ed-head">
+  <div>
+    <a routerLink="/admin/products" class="back">← Products</a>
+    <h1>{{ isNew() ? 'Add new offering' : p()?.name }}</h1>
+    @if (p(); as pp) {
+      <p class="muted head-meta">
+        <span class="type" [class]="'type t-' + pp.offering_type">{{ pp.offering_label }}</span>
+        @if (pp.is_archived) { <span class="badge badge-muted">Archived</span> }
+        @else if (pp.is_published) { <span class="badge badge-ok">Published</span> }
+        @else { <span class="badge badge-warn">Draft</span> }
+        <a [href]="'/products/' + pp.slug + (pp.is_published ? '' : '?contentPreview=1')" target="_blank" rel="noopener">{{ pp.is_published ? 'View on website ↗' : 'Preview ↗' }}</a>
+      </p>
+    }
+  </div>
+  @if (p(); as pp) {
+    @if (canPublish() && !pp.is_archived) {
+      <div class="row-actions">
+        @if (pp.is_published) { <button class="btn btn-ghost btn-sm" type="button" (click)="state('unpublish')">Unpublish</button> }
+        @else { <button class="btn btn-primary btn-sm" type="button" (click)="publishNow()">Publish</button> }
+      </div>
+    }
+  }
+</div>
+
+@if (msg(); as m) { <div class="alert sticky-msg" [class.alert-error]="m.err" [class.alert-ok]="!m.err" role="status">{{ m.text }}</div> }
+@if (!canEdit()) { <div class="alert">You can view this offering. Editing needs the “Create and edit products” permission.</div> }
+
+@if (isNew()) {
+  <!-- ================= NEW OFFERING ================= -->
+  <fieldset class="card body" [disabled]="!canEdit() || busy()">
+    <h2>What would you like to create?</h2>
+    <div class="types" role="radiogroup" aria-label="Offering type">
+      @for (t of offeringTypes; track t.key) {
+        <label class="tcard" [class.on]="newType() === t.key"><input type="radio" name="otype" [value]="t.key" [checked]="newType() === t.key" (change)="pickType(t.key)" /><strong>{{ t.label }}</strong><span>{{ t.hint }}</span></label>
+      }
+    </div>
+    <p class="muted small">Only the sections this type needs are shown. You can change the type later – nothing is lost.</p>
+      <form [formGroup]="basic" (ngSubmit)="saveBasic(true)" novalidate>
+        <div class="form-row">
+          <div class="field"><label for="pe-name">Product name</label><input id="pe-name" class="input" formControlName="name" />
+            @if (basic.controls.name.invalid && basic.controls.name.touched) { <span class="error">Enter the product name</span> }</div>
+          <div class="field"><label for="pe-tag">Tagline <span class="muted">(optional)</span></label><input id="pe-tag" class="input" formControlName="tagline" placeholder="e.g. Stock control without the spreadsheets" /></div>
+          <div class="field"><label for="pe-type">Format <span class="muted">(optional)</span></label><input id="pe-type" class="input" formControlName="productType" list="types" placeholder="Desktop, Web, Mobile…" />
+            <datalist id="types"><option value="Desktop software"></option><option value="Web application"></option><option value="Mobile app"></option><option value="Cloud service"></option><option value="Hardware & software"></option></datalist></div>
+          @if (!isNew()) {
+            <div class="field"><label for="pe-slug">Web address</label><input id="pe-slug" class="input" formControlName="slug" /><span class="hint">schluss.co.za/products/{{ basic.value.slug }}</span>@if (fe('slug')) {<span class="error">{{ fe('slug') }}</span>}</div>
+          }
+        </div>
+        <div class="field"><label for="pe-short">Short description</label><textarea id="pe-short" class="textarea" rows="2" formControlName="shortDescription" maxlength="500"></textarea><span class="hint">Shown on product cards and in search results. {{ basic.value.shortDescription?.length ?? 0 }}/500</span></div>
+        <div class="field"><label for="pe-desc">Full description</label><textarea id="pe-desc" class="textarea" rows="8" formControlName="description"></textarea><span class="hint">Plain text. Leave a blank line between paragraphs.</span></div>
+        <div class="field"><label for="pe-notice">Important notice <span class="muted">(optional)</span></label><textarea id="pe-notice" class="textarea" rows="2" formControlName="notice" maxlength="1000" placeholder="e.g. Version 3 requires Windows 10 or later"></textarea><span class="hint">Shown prominently near the top of the product page.</span></div>
+        @if (!isNew()) {
+          <div class="imgs">
+            <div class="img-slot">
+              <span class="label">Logo</span>
+              @if (p()?.logo) { <img [src]="p()!.logo" alt="Current logo" /> } @else { <div class="ph">No logo</div> }
+              <div class="row-actions"><button class="btn btn-ghost btn-sm" type="button" (click)="openPicker('logo', picker)">{{ p()?.logo ? 'Change' : 'Add logo' }}</button>@if (p()?.logo) {<button class="btn btn-ghost btn-sm" type="button" (click)="clearImage('logo')">Remove</button>}</div>
+            </div>
+            <div class="img-slot wide">
+              <span class="label">Main cover image <span class="muted">(shown on the tile and at the top of the page)</span></span>
+              @if (p()?.image) { <img [src]="p()!.image" alt="Current product image" /> } @else { <div class="ph">No image – the website shows "Product image to be added"</div> }
+              <div class="row-actions"><button class="btn btn-ghost btn-sm" type="button" (click)="openPicker('hero', picker)">{{ p()?.image ? 'Change' : 'Add image' }}</button>@if (p()?.image) {<button class="btn btn-ghost btn-sm" type="button" (click)="clearImage('hero')">Remove</button>}</div>
+            </div>
+            @if (feats().installer || p()?.offering_type === 'development' || p()?.status === 'coming_soon') {
+            <div class="img-slot wide">
+              <span class="label">Coming soon image <span class="muted">(preview shown while the product is "Coming soon")</span></span>
+              @if (p()?.previewImage) { <img [src]="p()!.previewImage" alt="Current coming soon image" /> } @else { <div class="ph">None – uses the product image, or the Coming soon puzzle illustration</div> }
+              <div class="row-actions"><button class="btn btn-ghost btn-sm" type="button" (click)="openPicker('preview', picker)">{{ p()?.previewImage ? 'Change' : 'Add image' }}</button>@if (p()?.previewImage) {<button class="btn btn-ghost btn-sm" type="button" (click)="clearImage('preview')">Remove</button>}</div>
+            </div>
+            }
+          </div>
+        }
+        <div class="actions">
+          <button class="btn btn-primary" type="submit">Save</button>
+        </div>
+      </form>
+  </fieldset>
+} @else if (p(); as pp) {
+<fieldset class="acc-wrap" [disabled]="!canEdit() || busy()">
+
+  <!-- ===== Offering type & features ===== -->
+  <section class="acc" id="sec-type" [class.open]="isOpen('type')">
+    <button type="button" class="acc-h" (click)="toggle('type')" [attr.aria-expanded]="isOpen('type')"><span class="acc-t">Offering type & features</span><span class="acc-s">{{ pp.offering_label }} · {{ enabledList() }}</span><span class="chev" aria-hidden="true"></span></button>
+    @if (isOpen('type')) {
+      <div class="acc-b">
+        <div class="types compact" role="radiogroup" aria-label="Offering type">
+          @for (t of offeringTypes; track t.key) {
+            <label class="tcard" [class.on]="of.type === t.key"><input type="radio" name="otype2" [value]="t.key" [checked]="of.type === t.key" (change)="changeType(t.key)" /><strong>{{ t.label }}</strong><span>{{ t.hint }}</span></label>
+          }
+        </div>
+        <h3>Features</h3>
+        <div class="feats">
+          @for (f of featureInfo; track f.key) {
+            <label class="feat" [class.na]="!allowed(f.key)"><input type="checkbox" [checked]="of.features[f.key] && allowed(f.key)" [disabled]="!allowed(f.key)" (change)="of.features[f.key] = $any($event.target).checked" /><span><strong>{{ f.label }}</strong><small>{{ allowed(f.key) ? f.hint : 'Not used by ' + typeName(of.type) }}</small></span></label>
+          }
+        </div>
+        @if (of.type !== pp.offering_type) { <div class="alert" role="note">Changing <strong>{{ pp.offering_label }}</strong> → <strong>{{ typeName(of.type) }}</strong> keeps this offering’s id, web address, videos, categories, customers and history. Sections for the new features appear below after saving.</div> }
+        <div class="actions"><button class="btn btn-primary" type="button" (click)="saveOffering()">Save type & features</button></div>
+      </div>
+    }
+  </section>
+
+  <!-- ===== A. Basic information ===== -->
+  <section class="acc" id="sec-basic" [class.open]="isOpen('basic')">
+    <button type="button" class="acc-h" (click)="toggle('basic')" [attr.aria-expanded]="isOpen('basic')"><span class="acc-t">Basic information & cover</span><span class="acc-s">{{ pp.short_description ? 'Description added' : 'Add a short description' }} · {{ pp.image ? 'Cover image ✓' : 'No cover image' }}</span><span class="chev" aria-hidden="true"></span></button>
+    @if (isOpen('basic')) { <div class="acc-b">
+      <form [formGroup]="basic" (ngSubmit)="saveBasic(true)" novalidate>
+        <div class="form-row">
+          <div class="field"><label for="pe-name">Product name</label><input id="pe-name" class="input" formControlName="name" />
+            @if (basic.controls.name.invalid && basic.controls.name.touched) { <span class="error">Enter the product name</span> }</div>
+          <div class="field"><label for="pe-tag">Tagline <span class="muted">(optional)</span></label><input id="pe-tag" class="input" formControlName="tagline" placeholder="e.g. Stock control without the spreadsheets" /></div>
+          <div class="field"><label for="pe-type">Format <span class="muted">(optional)</span></label><input id="pe-type" class="input" formControlName="productType" list="types" placeholder="Desktop, Web, Mobile…" />
+            <datalist id="types"><option value="Desktop software"></option><option value="Web application"></option><option value="Mobile app"></option><option value="Cloud service"></option><option value="Hardware & software"></option></datalist></div>
+          @if (!isNew()) {
+            <div class="field"><label for="pe-slug">Web address</label><input id="pe-slug" class="input" formControlName="slug" /><span class="hint">schluss.co.za/products/{{ basic.value.slug }}</span>@if (fe('slug')) {<span class="error">{{ fe('slug') }}</span>}</div>
+          }
+        </div>
+        <div class="field"><label for="pe-short">Short description</label><textarea id="pe-short" class="textarea" rows="2" formControlName="shortDescription" maxlength="500"></textarea><span class="hint">Shown on product cards and in search results. {{ basic.value.shortDescription?.length ?? 0 }}/500</span></div>
+        <div class="field"><label for="pe-desc">Full description</label><textarea id="pe-desc" class="textarea" rows="8" formControlName="description"></textarea><span class="hint">Plain text. Leave a blank line between paragraphs.</span></div>
+        <div class="field"><label for="pe-notice">Important notice <span class="muted">(optional)</span></label><textarea id="pe-notice" class="textarea" rows="2" formControlName="notice" maxlength="1000" placeholder="e.g. Version 3 requires Windows 10 or later"></textarea><span class="hint">Shown prominently near the top of the product page.</span></div>
+        @if (!isNew()) {
+          <div class="imgs">
+            <div class="img-slot">
+              <span class="label">Logo</span>
+              @if (p()?.logo) { <img [src]="p()!.logo" alt="Current logo" /> } @else { <div class="ph">No logo</div> }
+              <div class="row-actions"><button class="btn btn-ghost btn-sm" type="button" (click)="openPicker('logo', picker)">{{ p()?.logo ? 'Change' : 'Add logo' }}</button>@if (p()?.logo) {<button class="btn btn-ghost btn-sm" type="button" (click)="clearImage('logo')">Remove</button>}</div>
+            </div>
+            <div class="img-slot wide">
+              <span class="label">Main cover image <span class="muted">(shown on the tile and at the top of the page)</span></span>
+              @if (p()?.image) { <img [src]="p()!.image" alt="Current product image" /> } @else { <div class="ph">No image – the website shows "Product image to be added"</div> }
+              <div class="row-actions"><button class="btn btn-ghost btn-sm" type="button" (click)="openPicker('hero', picker)">{{ p()?.image ? 'Change' : 'Add image' }}</button>@if (p()?.image) {<button class="btn btn-ghost btn-sm" type="button" (click)="clearImage('hero')">Remove</button>}</div>
+            </div>
+            @if (feats().installer || p()?.offering_type === 'development' || p()?.status === 'coming_soon') {
+            <div class="img-slot wide">
+              <span class="label">Coming soon image <span class="muted">(preview shown while the product is "Coming soon")</span></span>
+              @if (p()?.previewImage) { <img [src]="p()!.previewImage" alt="Current coming soon image" /> } @else { <div class="ph">None – uses the product image, or the Coming soon puzzle illustration</div> }
+              <div class="row-actions"><button class="btn btn-ghost btn-sm" type="button" (click)="openPicker('preview', picker)">{{ p()?.previewImage ? 'Change' : 'Add image' }}</button>@if (p()?.previewImage) {<button class="btn btn-ghost btn-sm" type="button" (click)="clearImage('preview')">Remove</button>}</div>
+            </div>
+            }
+          </div>
+        }
+        <div class="actions">
+          <button class="btn btn-primary" type="submit">Save</button>
+        </div>
+      </form>
+    </div> }
+  </section>
+
+  <!-- ===== Category, status & feature list ===== -->
+  <section class="acc" id="sec-details" [class.open]="isOpen('details')">
+    <button type="button" class="acc-h" (click)="toggle('details')" [attr.aria-expanded]="isOpen('details')"><span class="acc-t">Category, availability & features list</span><span class="acc-s">{{ pp.category?.name ?? 'No category' }} · {{ statusLabel[pp.status] }} · {{ pp.features.length }} feature/FAQ item(s)</span><span class="chev" aria-hidden="true"></span></button>
+    @if (isOpen('details')) { <div class="acc-b">
+      <form [formGroup]="settings" (ngSubmit)="saveStep2(true)">
+        <div class="form-row">
+          <div class="field"><label for="pe-cat">Category</label>
+            <select id="pe-cat" class="select" formControlName="categoryId"><option [ngValue]="null">Choose…</option>@for (c of cats(); track c.id) {<option [ngValue]="c.id">{{ c.name }}</option>}</select>
+            @if (!cats().length) { <span class="hint"><a routerLink="/admin/categories">Create a website category first</a></span> }</div>
+          <div class="field"><label for="pe-status">Product status</label>
+            <select id="pe-status" class="select" formControlName="status" [attr.disabled]="canPublish() ? null : true">@for (s of statuses; track s[0]) {<option [value]="s[0]">{{ s[1] }}</option>}</select>
+            @if (!canPublish()) { <span class="hint">Needs the publish permission to change.</span> }</div>
+          @if (settings.value.status === 'coming_soon') {
+            <div class="field"><label for="pe-rel">Expected release <span class="muted">(optional)</span></label><input id="pe-rel" class="input" type="date" formControlName="expectedRelease" /></div>
+          }
+        </div>
+        @if (feats().installer || feats().demo || feats().trial) {
+        <div class="field"><span class="label">Supported platforms</span>
+          <div class="chips">@for (pl of platforms; track pl[0]) { <button type="button" class="chip" [attr.aria-pressed]="selectedPlatforms().includes(pl[0])" (click)="togglePlatform(pl[0])">{{ pl[1] }}</button> }</div></div>
+        <div class="field"><label for="pe-req">System requirements <span class="muted">(optional)</span></label><textarea id="pe-req" class="textarea" rows="3" formControlName="systemRequirements"></textarea></div>
+        }
+
+        @for (group of [['feature', 'Features'], ['benefit', 'Benefits'], ['faq', 'Frequently asked questions']]; track group[0]) {
+          <div class="list">
+            <div class="list-h"><h3>{{ group[1] }}</h3><button class="btn btn-ghost btn-sm" type="button" (click)="addFeature($any(group[0]))">+ Add</button></div>
+            @for (x of featuresOf(group[0]); track x.i) {
+              <div class="item">
+                <div class="item-f">
+                  <input class="input" [(ngModel)]="x.f.title" [ngModelOptions]="{ standalone: true }" [placeholder]="group[0] === 'faq' ? 'Question' : 'Title'" [attr.aria-label]="group[1] + ' title'" />
+                  <textarea class="textarea" rows="2" [(ngModel)]="x.f.body" [ngModelOptions]="{ standalone: true }" [placeholder]="group[0] === 'faq' ? 'Answer' : 'Short explanation (optional)'" [attr.aria-label]="group[1] + ' text'"></textarea>
+                </div>
+                <div class="item-a">
+                  <button class="btn btn-ghost btn-sm" type="button" (click)="moveFeature(x.i, -1)" aria-label="Move up">↑</button>
+                  <button class="btn btn-ghost btn-sm" type="button" (click)="moveFeature(x.i, 1)" aria-label="Move down">↓</button>
+                  <button class="btn btn-danger btn-sm" type="button" (click)="removeFeature(x.i)" aria-label="Remove">✕</button>
+                </div>
+              </div>
+            } @empty { <p class="muted small">None yet.</p> }
+          </div>
+        }
+        <div class="actions"><button class="btn btn-primary" type="submit">Save</button></div>
+      </form>
+    </div> }
+  </section>
+
+  <!-- ===== Images ===== -->
+  <section class="acc" id="sec-images" [class.open]="isOpen('images')">
+    <button type="button" class="acc-h" (click)="toggle('images')" [attr.aria-expanded]="isOpen('images')"><span class="acc-t">Images & gallery</span><span class="acc-s">Screenshots and gallery images for the page</span><span class="chev" aria-hidden="true"></span></button>
+    @if (isOpen('images')) { <div class="acc-b"><sch-pe-images [product]="pp" (changed)="apply($event)" /></div> }
+  </section>
+
+  <!-- ===== B. Access ===== -->
+  <section class="acc" id="sec-access" [class.open]="isOpen('access')">
+    <button type="button" class="acc-h" (click)="toggle('access')" [attr.aria-expanded]="isOpen('access')"><span class="acc-t">Customer access</span><span class="acc-s">Videos: {{ accessLabel(pp.content_access) }}@if (feats().installer) { · Installer: licensed customers by default }</span><span class="chev" aria-hidden="true"></span></button>
+    @if (isOpen('access')) { <div class="acc-b">
+      <div class="field"><label for="pe-acc">Who can watch the videos and learning content?</label>
+        <select id="pe-acc" class="select" [(ngModel)]="access" [ngModelOptions]="{ standalone: true }">
+          <option value="default">Default from content settings</option>
+          <option value="public">Public – anyone, no sign-in needed</option>
+          <option value="registered">Registered customers – must sign in (verified email)</option>
+          <option value="authorised">Authorised customers – active licence for this offering</option>
+          <option value="demo">Demo customers – active demo or licence</option>
+        </select>
+        <span class="hint">Free offerings: choose Public or Registered. Paid offerings: choose Authorised (customers get access when a licence/package is assigned). Individual videos can override this in the content library.</span>
+      </div>
+      <div class="actions"><button class="btn btn-primary" type="button" (click)="saveAccess()">Save access</button></div>
+      @if (feats().installer) { <p class="muted small">Who may download the full installer is set in <button type="button" class="linkish" (click)="go('installer')">Installation files</button>.</p> }
+      <p class="muted small">Unpublished offerings are never visible to customers, whatever the access setting.</p>
+    </div> }
+  </section>
+
+  <!-- ===== C. Installation files ===== -->
+  @if (feats().installer) {
+  <section class="acc" id="sec-installer" [class.open]="isOpen('installer')">
+    <button type="button" class="acc-h" (click)="toggle('installer')" [attr.aria-expanded]="isOpen('installer')"><span class="acc-t">Installation files (full .exe)</span><span class="acc-s">{{ pp.summary.installerVersion ? 'Version ' + pp.summary.installerVersion + ' released' : 'No installer uploaded yet' }} · {{ pp.summary.downloads }} download(s)</span><span class="chev" aria-hidden="true"></span></button>
+    @if (isOpen('installer')) { <div class="acc-b">
+      <sch-pe-demo [productId]="pp.id" mode="files" channel="release" />
+      <details class="sub"><summary>Download history</summary><sch-pe-downloads [productId]="pp.id" /></details>
+    </div> }
+  </section>
+  }
+
+  <!-- ===== D. Demo & trial ===== -->
+  @if (feats().demo || feats().trial) {
+  <section class="acc" id="sec-demo" [class.open]="isOpen('demo')">
+    <button type="button" class="acc-h" (click)="toggle('demo')" [attr.aria-expanded]="isOpen('demo')"><span class="acc-t">Demo & trial</span><span class="acc-s">@if (feats().demo) { Demo {{ pp.summary.demoVersion ? 'v' + pp.summary.demoVersion : 'not uploaded' }}{{ pp.demo_options.downloadable ? ' · switched on' : ' · switched off' }} · }@if (pp.trial_days) { {{ pp.trial_days }} days · } {{ pp.summary.demos }} customer demo(s)/trial(s)</span><span class="chev" aria-hidden="true"></span></button>
+    @if (isOpen('demo')) { <div class="acc-b">
+      @if (feats().demo) {
+        <h3>Demo settings (enable / disable, length, start rule)</h3>
+        <sch-pe-demo [productId]="pp.id" mode="settings" />
+        <h3>Demo installer files</h3>
+        <sch-pe-demo [productId]="pp.id" mode="files" />
+      } @else {
+        <h3>Free trial</h3>
+        <div class="form-row">
+          <div class="field"><label for="pe-trial">Trial length (days)</label><input id="pe-trial" class="input" type="number" min="1" max="365" [(ngModel)]="trialDays" [ngModelOptions]="{ standalone: true }" /><span class="hint">Customers start the trial from the product page; the end date is kept by SCHLUSS. Leave empty to stop offering new trials.</span></div>
+        </div>
+        <div class="actions"><button class="btn btn-primary" type="button" (click)="saveTrial()">Save trial</button></div>
+      }
+      <details class="sub"><summary>Customer demos & downloads ({{ pp.summary.demos }})</summary><sch-pe-demo-history [productId]="pp.id" /></details>
+      <details class="sub"><summary>Live demonstration requests</summary>
+      <form [formGroup]="settings" (ngSubmit)="saveStep4(true)">
+        <h3>Live demonstrations</h3>
+        <label class="check"><input type="checkbox" formControlName="requestForm" /><span>Show the demo request form on the product page</span></label>
+        <label class="check"><input type="checkbox" formControlName="scheduled" /><span>Offer scheduled live demonstrations</span></label>
+        <label class="check"><input type="checkbox" formControlName="video" /><span>A demo video is available (add it below)</span></label>
+        <div class="field"><label for="pe-int">Interactive demo link <span class="muted">(optional)</span></label><input id="pe-int" class="input" type="url" formControlName="interactiveUrl" placeholder="https://" />@if (fe('demoOptions.interactiveUrl')) {<span class="error">{{ fe('demoOptions.interactiveUrl') }}</span>}</div>
+        <div class="actions"><button class="btn btn-ghost" type="button" (click)="saveStep4(false)">Save demo options</button></div>
+      </form>
+
+
+      </details>
+    </div> }
+  </section>
+  }
+
+  <!-- ===== E/F. Videos & learning content ===== -->
+  @if (feats().learning) {
+  <section class="acc" id="sec-content" [class.open]="isOpen('content')">
+    <button type="button" class="acc-h" (click)="toggle('content')" [attr.aria-expanded]="isOpen('content')"><span class="acc-t">{{ pp.offering_type === 'software' ? 'Videos, tutorials & learning content' : 'Lessons, videos & categories' }}</span><span class="acc-s">{{ pp.summary.contentItems }} item(s) · {{ pp.summary.contentPublished }} published · {{ pp.summary.contentCategories }} categor{{ pp.summary.contentCategories === 1 ? 'y' : 'ies' }}</span><span class="chev" aria-hidden="true"></span></button>
+    @if (isOpen('content')) { <div class="acc-b">
+      <sch-pe-content [productId]="pp.id" [showAccess]="false" (changed)="contentChanged($event)" />
+      <details class="sub"><summary>Documents, guides & links</summary>
+        <sch-learning-admin [productId]="pp.id" intro="Manuals, written guides, FAQs, documents and useful links for this offering." addLabel="Add learning item" />
+      </details>
+      @if (feats().installer || feats().demo) { <details class="sub"><summary>Customer setup steps (shown in “My account”)</summary><sch-pe-steps [productId]="pp.id" /></details> }
+      @if (videos().length) {
+        <details class="sub"><summary>Classic product-page videos ({{ videos().length }})</summary>
+      <div class="list">
+        <div class="list-h"><h3>Videos</h3>
+          <div class="row-actions"><select class="select sm" [(ngModel)]="videoRole" aria-label="Video type">@for (k of videoRoleKeys; track k) {<option [value]="k">{{ videoRoles[k] }}</option>}</select>
+          <button class="btn btn-ghost btn-sm" type="button" (click)="openPicker('video', picker)">+ Add video</button></div></div>
+        @for (v of videos(); track v.link_id) {
+          <div class="mrow">
+            @if (v.thumbnail) { <img class="vthumb" [src]="v.thumbnail" alt="" /> }
+            <span class="badge badge-info">{{ videoRoles[v.role] ?? v.role }}</span><span>{{ v.caption || v.title }}@if (v.duration_seconds) { <span class="muted"> · {{ v.duration_seconds / 60 | number: '1.0-0' }} min</span> }</span>
+            @if (v.url) {<a [href]="v.url" target="_blank" rel="noopener">Open ↗</a>}
+            <button class="btn btn-ghost btn-sm" type="button" (click)="editVideo(v)">Edit details</button>
+            <button class="btn btn-ghost btn-sm" type="button" (click)="removeMedia(v.link_id)">Remove</button>
+          </div>
+          @if (editing() === v.link_id) {
+            <div class="vedit">
+              <div class="form-row">
+                <div class="field"><label [for]="'vc' + v.link_id">Title on the video tile</label><input [id]="'vc' + v.link_id" class="input" [(ngModel)]="vForm.caption" [ngModelOptions]="{ standalone: true }" maxlength="255" [placeholder]="v.title" /></div>
+                <div class="field"><label [for]="'vm' + v.link_id">Duration</label><div class="dur-in"><input [id]="'vm' + v.link_id" class="input" type="number" min="0" max="600" [(ngModel)]="vForm.minutes" [ngModelOptions]="{ standalone: true }" aria-label="Minutes" placeholder="min" /><span>:</span><input class="input" type="number" min="0" max="59" [(ngModel)]="vForm.seconds" [ngModelOptions]="{ standalone: true }" aria-label="Seconds" placeholder="sec" /></div></div>
+              </div>
+              <div class="field"><label [for]="'vd' + v.link_id">Short description</label><textarea [id]="'vd' + v.link_id" class="textarea" rows="2" maxlength="500" [(ngModel)]="vForm.description" [ngModelOptions]="{ standalone: true }"></textarea></div>
+              <div class="row-actions">
+                <button class="btn btn-ghost btn-sm" type="button" (click)="openPicker('thumb', picker)">{{ v.thumbnail ? 'Change thumbnail' : 'Set thumbnail image' }}</button>
+                @if (v.thumbnail) { <button class="btn btn-ghost btn-sm" type="button" (click)="clearThumb(v.link_id)">Remove thumbnail</button> }
+                <span class="muted small">YouTube videos get their thumbnail automatically if none is set.</span>
+              </div>
+              <div class="row-actions"><button class="btn btn-primary btn-sm" type="button" (click)="saveVideo()">Save video details</button><button class="btn btn-ghost btn-sm" type="button" (click)="editing.set(null)">Cancel</button></div>
+            </div>
+          }
+        } @empty { <p class="muted small">No videos yet. Add YouTube/Vimeo links via the media library.</p> }
+      </div>
+
+        </details>
+      }
+    </div> }
+  </section>
+  }
+
+  <!-- ===== G. Pricing & sales ===== -->
+  @if (feats().pricing || feats().purchase) {
+  <section class="acc" id="sec-pricing" [class.open]="isOpen('pricing')">
+    <button type="button" class="acc-h" (click)="toggle('pricing')" [attr.aria-expanded]="isOpen('pricing')"><span class="acc-t">Pricing & sales</span><span class="acc-s">@if (feats().pricing) { {{ activePlans() }} active pricing option(s) · }{{ feats().purchase ? 'Purchase / quotation form on' : 'No purchase form' }}</span><span class="chev" aria-hidden="true"></span></button>
+    @if (isOpen('pricing')) { <div class="acc-b">
+      @if (feats().pricing) {
+      <div class="list">
+        <div class="list-h"><h3>Pricing options</h3>@if (canPrice()) {<button class="btn btn-ghost btn-sm" type="button" (click)="addPlan()">+ Add pricing option</button>}</div>
+        @if (!canPrice()) { <p class="muted small">Viewing only – changing prices needs the pricing permission.</p> }
+        @for (pl of plans(); track $index; let i = $index) {
+          <div class="plan" [class.off]="!pl.is_active">
+            <div class="form-row">
+              <div class="field"><label [for]="'pn' + i">Option name</label><input [id]="'pn' + i" class="input" [(ngModel)]="pl.name" placeholder="e.g. Starter, Business" [disabled]="!canPrice()" /></div>
+              <div class="field"><label [for]="'pm' + i">Pricing model</label>
+                <select [id]="'pm' + i" class="select" [(ngModel)]="pl.model" (ngModelChange)="modelChanged(pl)" [disabled]="!canPrice()">@for (k of modelKeys; track k) {<option [value]="k">{{ models[k] }}</option>}</select></div>
+              @if (needsPrice(pl)) {
+                <div class="field"><label [for]="'pp' + i">Price ({{ pl.currency }})</label><input [id]="'pp' + i" class="input" inputmode="decimal" [(ngModel)]="pl.price" placeholder="0.00" [disabled]="!canPrice()" /></div>
+                @if (!['monthly', 'annual'].includes(pl.model)) {
+                  <div class="field"><label [for]="'pb' + i">Billing</label>
+                    <select [id]="'pb' + i" class="select" [(ngModel)]="pl.billing_period" [disabled]="!canPrice()"><option value="none">Once-off</option><option value="month">Per month</option><option value="year">Per year</option></select></div>
+                }
+              }
+            </div>
+            <div class="form-row">
+              <div class="field"><label [for]="'pi' + i">What's included <span class="muted">(one per line)</span></label><textarea [id]="'pi' + i" class="textarea" rows="3" [ngModel]="inclusionsText(pl)" (ngModelChange)="setInclusions(pl, $event)" [disabled]="!canPrice()"></textarea></div>
+              <div class="field"><label [for]="'pc' + i">Conditions <span class="muted">(optional)</span></label><textarea [id]="'pc' + i" class="textarea" rows="3" [(ngModel)]="pl.conditions" placeholder="e.g. Minimum 12-month term" [disabled]="!canPrice()"></textarea></div>
+            </div>
+            <div class="plan-f">
+              <label class="check"><input type="checkbox" [(ngModel)]="pl.price_includes_vat" [disabled]="!canPrice()" /><span>Price includes VAT</span></label>
+              <label class="check"><input type="checkbox" [(ngModel)]="pl.is_highlighted" [disabled]="!canPrice()" /><span>Highlight as “Most popular”</span></label>
+              <label class="check"><input type="checkbox" [(ngModel)]="pl.is_active" [disabled]="!canPrice()" /><span>Active</span></label>
+              @if (canPrice()) { <button class="btn btn-danger btn-sm" type="button" (click)="removePlan(i)">Remove option</button> }
+            </div>
+          </div>
+        } @empty { <p class="muted small">No pricing options yet. Add “Price on quotation” if you don't publish prices.</p> }
+      </div>
+      @if (canPrice()) { <div class="actions"><button class="btn btn-primary" type="button" (click)="saveStep3(false)">Save pricing</button></div> }
+      } @else { <p class="muted small">Prices are not shown for this offering (switch on “Pricing” under Offering type & features).</p> }
+      <details class="sub"><summary>Enquiries about this offering</summary><sch-pe-enquiries [productId]="pp.id" /></details>
+    </div> }
+  </section>
+  }
+
+  <!-- ===== Publish ===== -->
+  <section class="acc" id="sec-about" [class.open]="isOpen('about')">
+    <button type="button" class="acc-h" (click)="toggle('about')" [attr.aria-expanded]="isOpen('about')"><span class="acc-t">About SCHLUSS display settings</span><span class="acc-s">Show in About SCHLUSS: {{ pp.about_show ? 'Yes · order ' + pp.about_order : 'No' }}</span><span class="chev" aria-hidden="true"></span></button>
+    @if (isOpen('about')) { <div class="acc-b"><sch-pe-about [product]="pp" [canEdit]="canEdit()" (saved)="apply($event)" /></div> }
+  </section>
+
+  <section class="acc" id="sec-publish" [class.open]="isOpen('publish')">
+    <button type="button" class="acc-h" (click)="toggle('publish')" [attr.aria-expanded]="isOpen('publish')"><span class="acc-t">Publish, visibility & delete</span><span class="acc-s">{{ pp.is_archived ? 'Archived' : pp.is_published ? 'Live on the website' : ready() ? 'Ready to publish' : 'Not ready to publish yet' }}</span><span class="chev" aria-hidden="true"></span></button>
+    @if (isOpen('publish')) { <div class="acc-b">
+      <ul class="check-list">
+        @for (c of checklist(); track c.label) { <li [class.ok]="c.ok"><span aria-hidden="true">{{ c.ok ? '✓' : c.optional ? '○' : '✕' }}</span>{{ c.label }}</li> }
+      </ul>
+      <form [formGroup]="settings" (ngSubmit)="saveSeo()">
+        <h3>Search engines & home page</h3>
+        <div class="form-row">
+          <div class="field"><label for="pe-st">Search title <span class="muted">(optional)</span></label><input id="pe-st" class="input" formControlName="seoTitle" maxlength="191" [placeholder]="p()?.name" /></div>
+          <div class="field"><label for="pe-sd">Search description <span class="muted">(optional)</span></label><textarea id="pe-sd" class="textarea" rows="2" formControlName="seoDescription" maxlength="320" [placeholder]="p()?.short_description ?? ''"></textarea></div>
+        </div>
+        @if (canPublish()) { <label class="check"><input type="checkbox" formControlName="isFeatured" /><span>Feature this product on the home page</span></label> }
+        <div class="actions"><button class="btn btn-ghost" type="submit">Save display settings</button></div>
+      </form>
+      @if (canPublish()) {
+        <div class="publish">
+          @if (p(); as pp) {
+            @if (pp.is_archived) {
+              <button class="btn btn-ghost" type="button" (click)="state('restore')">Restore as draft</button>
+            } @else if (pp.is_published) {
+              <a class="btn btn-ghost" [href]="'/products/' + pp.slug" target="_blank" rel="noopener">View live page ↗</a>
+              <button class="btn btn-ghost" type="button" (click)="state('unpublish')">Unpublish</button>
+              <button class="btn btn-danger" type="button" (click)="state('archive')">Archive</button>
+            } @else {
+              <button class="btn btn-primary" type="button" (click)="state('publish')" [disabled]="!ready()">Publish to website</button>
+              <button class="btn btn-danger" type="button" (click)="state('archive')">Archive</button>
+              @if (!ready()) { <p class="muted small">Complete the items marked ✕ to publish.</p> }
+            }
+          }
+          @if (p(); as pp) {
+            <div class="danger-zone">
+              <strong>Delete this product</strong>
+              <p class="muted small">Permanently removes the product, its page, pricing, image links, versions and setup steps. Only possible when no customer has a demo, licence, download or sales enquiry for it – otherwise archive it.</p>
+              <button class="btn btn-danger" type="button" (click)="deleteProduct()">Delete product…</button>
+            </div>
+          }
+        </div>
+      } @else { <p class="muted">Publishing needs the “Publish products” permission – ask a product manager or administrator.</p> }
+    </div> }
+  </section>
+</fieldset>
+}
+
+<sch-media-picker #picker [kind]="pickerTarget() === 'video' ? 'video' : 'image'" [heading]="pickerTarget() === 'video' ? 'Choose a video' : pickerTarget() === 'thumb' ? 'Choose a thumbnail image' : pickerTarget() === 'preview' ? 'Choose a Coming soon image' : 'Choose an image'" (picked)="picked($event)" />

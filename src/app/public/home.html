@@ -1,0 +1,211 @@
+@let h = home();
+
+<!-- 1 · Hero – headline on the left; the SCHLUSS hub (logo assembling, industries connecting) on the right,
+     over the living puzzle grid -->
+<section class="hero">
+  <sch-home-lockup [chips]="industries()">
+    <div class="copy-in">
+      <p class="pill" aria-live="off">
+        <span class="pdot" aria-hidden="true"></span>
+        <span class="tk-l">Built for</span>
+        <span class="tk-box">
+          @for (t of [tickerWord()]; track t.n) { <span class="tk-w" [style.--c]="t.c">{{ t.text }}</span> }
+        </span>
+      </p>
+      <h1 class="title">
+        <span class="t1">{{ title()[0] }}</span>
+        @if (title()[1]) { <span class="t2">{{ title()[1] }}</span> }
+        <span class="sr-only"> – SCHLUSS, the final piece that brings it all together.</span>
+      </h1>
+      @if (h?.heroSubtitle) { <p class="lead">{{ h?.heroSubtitle }}</p> }
+      <div class="ctas">
+        <a class="btn btn-primary sheen" routerLink="/products" schMagnetic>Explore our solutions <span aria-hidden="true">→</span></a>
+        <a class="btn btn-ghost" routerLink="/request-demo" schMagnetic>Request a demo</a>
+      </div>
+      <ul class="trust">
+        <li style="--c: var(--c-teal)">Free trials</li>
+        <li style="--c: var(--c-amber)">Live demonstrations</li>
+        <li style="--c: var(--c-violet)">Local partner support</li>
+      </ul>
+    </div>
+  </sch-home-lockup>
+</section>
+
+<!-- Industries marquee – every industry is a piece SCHLUSS connects -->
+<div class="marquee" aria-label="Industries we serve">
+  <div class="mq-track">
+    @for (copy of [0, 1]; track copy) {
+      <ul [attr.aria-hidden]="copy === 1">
+        @for (m of industries(); track $index; let i = $index) {
+          <li [style.--c]="m.c"><svg viewBox="-14 -14 136 136" aria-hidden="true"><path d="M0 0 L41 0 L41 8 A15 15 0 1 0 59 8 L59 0 L100 0 L100 41 L108 41 A15 15 0 1 1 108 59 L100 59 L100 100 L59 100 L59 108 A15 15 0 1 1 41 108 L41 100 L0 100 L0 59 L8 59 A15 15 0 1 0 8 41 L0 41 Z" /></svg>{{ m.name }}</li>
+        }
+      </ul>
+    }
+  </div>
+</div>
+
+<!-- 2 · Ecosystem – light porcelain; every category is a coloured piece -->
+@if (categories().length) {
+  <section class="section zone zone-porcelain eco">
+    <div class="wrap">
+      <div class="section-head" schReveal>
+        <span class="eyebrow">01 · Ecosystem</span>
+        <h2>Different solutions. One connected ecosystem.</h2>
+        <p>Every SCHLUSS product is a piece built to fit the others. Pick the area you need.</p>
+      </div>
+      <div class="cats">
+        @for (c of categories(); track c.id; let i = $index) {
+          <a class="cat" data-launch [routerLink]="['/products']" [queryParams]="{ category: c.slug }" [schReveal]="i" [style]="catStyle(c)" schTilt="10">
+            <span class="piece" aria-hidden="true">
+              <svg viewBox="-8 -8 216 216"><path [attr.d]="pieces[i % 4]" /></svg>
+            </span>
+            <span class="cat-t">
+              <strong>{{ c.name }}</strong>
+              <span class="mono">{{ c.productCount }} product{{ c.productCount === 1 ? '' : 's' }}</span>
+            </span>
+            <span class="go" aria-hidden="true">→</span>
+          </a>
+        }
+      </div>
+    </div>
+  </section>
+}
+
+<!-- 3 · Featured products -->
+@if (featured().length) {
+  <section class="section zone feat">
+    <sch-puzzle-field [density]="0.6" [strength]="0.35" [hues]="['blue', 'teal', 'violet']" />
+    <div class="wrap">
+      <div class="section-head row" schReveal>
+        <div><span class="eyebrow">02 · Solutions</span><h2>Popular SCHLUSS solutions</h2></div>
+        <a class="link-arrow" routerLink="/products">View all products</a>
+      </div>
+      <div class="grid-cards">
+        @for (p of featured(); track p.slug; let i = $index) { <sch-product-card [product]="p" [schReveal]="i" /> }
+      </div>
+    </div>
+  </section>
+}
+
+<!-- 4 · How it works – the four pieces assemble as you scroll -->
+<section class="section zone how" schScrollProgress>
+  <div class="wrap how-in">
+    <div class="section-head" schReveal>
+      <span class="eyebrow">03 · How it works</span>
+      <h2>From first look to full support – piece by piece</h2>
+    </div>
+    <div class="assembly" aria-hidden="true">
+      <svg viewBox="-70 -70 340 340">
+        @for (s of steps; track s.title; let i = $index) {
+          <g class="ap" [style.--i]="i" [style.--c1]="s.c1" [style.--c2]="s.c2">
+            <path [attr.d]="pieces[i]" [attr.fill]="'url(#hw' + i + ')'" />
+          </g>
+          <defs><linearGradient [attr.id]="'hw' + i" x1="0" y1="0" x2="1" y2="1"><stop offset="0" [attr.stop-color]="s.glow" /><stop offset=".5" [attr.stop-color]="s.c1" /><stop offset="1" [attr.stop-color]="s.c2" /></linearGradient></defs>
+        }
+      </svg>
+      <span class="done mono">Complete</span>
+    </div>
+    <ol class="steps">
+      @for (s of steps; track s.title; let i = $index) {
+        <li [schReveal]="i" [style.--c1]="s.c1" [class]="i % 2 ? 'from-right' : 'from-left'">
+          <span class="step-n mono">Piece {{ i + 1 }} / 4</span>
+          <h3>{{ s.title }}</h3>
+          <p class="muted">{{ s.body }}</p>
+        </li>
+      }
+    </ol>
+  </div>
+</section>
+
+<!-- 5 · About / the name – ocean teal -->
+<section class="section zone zone-ocean" id="discover">
+  <div class="wrap two">
+    <div schReveal class="from-left">
+      <span class="eyebrow" style="--accent-glow: #7FF0E2">04 · About SCHLUSS</span>
+      <h2 class="h2">{{ h?.introTitle }}</h2>
+      <p class="lead">{{ h?.introBody }}</p>
+      <a class="link-arrow" routerLink="/about">Learn more about us</a>
+    </div>
+    <div class="concept tab lit glass" schReveal="1" style="--accent: var(--c-teal)">
+      <sch-puzzle3d [size]="120" look="brand" [idle]="false" />
+      <h3>{{ h?.conceptTitle }}</h3>
+      <p class="muted">{{ h?.conceptBody }}</p>
+      <p class="def"><strong lang="de">Schluss</strong> [ʃlʊs] — <em>noun</em>: the end, the conclusion, the close.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 6 · Why SCHLUSS – porcelain with a colour per reason -->
+<section class="section zone zone-porcelain">
+  <div class="wrap">
+    <div class="section-head" schReveal>
+      <span class="eyebrow">05 · Why SCHLUSS</span>
+      <h2>Built for businesses that need things to work together</h2>
+    </div>
+    <div class="why">
+      @for (w of h?.why ?? []; track $index; let i = $index) {
+        <div class="why-i" [schReveal]="i" [style]="whyStyle(i)">
+          <span class="ic"><sch-icon [name]="whyIcons[i % whyIcons.length]" [size]="22" /></span>
+          <h3>{{ w.title }}</h3>
+          <p class="muted">{{ w.body }}</p>
+        </div>
+      }
+    </div>
+  </div>
+</section>
+
+<!-- 7 · Coming soon – nebula, unfinished puzzles -->
+@if (soon().length) {
+  <section class="section zone zone-nebula">
+    <sch-puzzle-field [density]="0.8" [strength]="0.5" [hues]="['violet', 'magenta', 'blue']" />
+    <div class="wrap">
+      <div class="section-head row" schReveal>
+        <div><span class="eyebrow" style="--accent-glow: #BBA9FF">06 · Coming soon</span><h2>The next pieces are taking shape</h2><p>Ask for an early demonstration of what's in development.</p></div>
+        <a class="link-arrow" routerLink="/coming-soon">Explore what's coming</a>
+      </div>
+      <div class="grid-cards">
+        @for (p of soon(); track p.slug; let i = $index) { <sch-soon-card [product]="p" [schReveal]="i" /> }
+      </div>
+    </div>
+  </section>
+}
+
+<!-- 8 · Business partners – ember -->
+<section class="partner-band zone zone-ember">
+  <div class="wrap band-in" schReveal>
+    <div>
+      <span class="eyebrow" style="--accent-glow: #FFD68A">07 · Business partners</span>
+      <h2>{{ partners()?.title }}</h2>
+      <p>{{ partners()?.subtitle }}</p>
+    </div>
+    <a class="btn btn-primary" routerLink="/partners" style="--accent: var(--c-amber); --accent-2: var(--c-orange)" schMagnetic>Become a partner</a>
+  </div>
+</section>
+
+<!-- 9 · Support + demo -->
+<section class="section zone duo-zone">
+  <div class="wrap duo">
+    <div class="panel tab" schReveal style="--accent: var(--c-lime); --accent-2: #2BB673">
+      <span class="ic"><sch-icon name="book" [size]="22" /></span>
+      <h2>{{ h?.supportTitle }}</h2>
+      <p class="muted">{{ h?.supportBody }}</p>
+      <div class="links"><a class="link-arrow" routerLink="/products">Explore our products</a><a class="link-arrow" routerLink="/contact">Contact support</a></div>
+    </div>
+    <div class="panel tab" schReveal="1" style="--accent: var(--c-magenta); --accent-2: #A42AC9">
+      <span class="ic"><sch-icon name="calendar" [size]="22" /></span>
+      <h2>{{ h?.ctaTitle }}</h2>
+      <p class="muted">{{ h?.ctaBody }}</p>
+      <div class="links"><a class="btn btn-primary" routerLink="/request-demo">Request a demo</a><a class="link-arrow" routerLink="/contact">Contact sales</a></div>
+    </div>
+  </div>
+</section>
+
+<!-- 10 · Final statement – the puzzle complete -->
+<section class="final zone zone-aurora">
+  <sch-puzzle-field [density]="1.2" calm="center" />
+  <div class="wrap final-in" schReveal>
+    <sch-puzzle3d [size]="150" />
+    <h2><span>Everything has its place.</span><span class="grad-text">We complete the picture.</span></h2>
+    <a class="btn btn-primary" routerLink="/request-demo" schMagnetic>Complete your business technology puzzle</a>
+  </div>
+</section>

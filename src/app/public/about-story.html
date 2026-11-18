@@ -1,0 +1,199 @@
+@let s = story();
+@let pic = picture();
+<section class="experience" [class.narrow]="mode() === 'narrow'" [class.reduced]="reduced()" aria-labelledby="about-h1">
+  <h1 id="about-h1" class="sr-only">About SCHLUSS – {{ s?.meaningMessage ?? 'The final piece of the puzzle.' }}</h1>
+
+  <!-- animated background: soft light, drifting particles and puzzle fragments at different depths -->
+  <div class="bg" aria-hidden="true">
+    <div class="aurora"></div>
+    @for (p of particles; track p.k) {
+      <i class="dot" [style.left.%]="p.x" [style.top.%]="p.y" [style.width.px]="p.s" [style.height.px]="p.s" [style.--c]="p.c" [style.--o]="p.o" [style.animation-duration.s]="p.d" [style.animation-delay.s]="p.dl"></i>
+    }
+    @for (f of fragments; track f.k) {
+      <svg class="frag" viewBox="-14 -14 136 136" [style.left.%]="f.x" [style.top.%]="f.y" [style.width.px]="f.s" [style.--c]="f.c" [style.--z]="f.depth" [style.animation-duration.s]="f.d" [style.animation-delay.s]="f.dl">
+        <path d="M0 0 L41 0 L41 8 A15 15 0 1 0 59 8 L59 0 L100 0 L100 41 L108 41 A15 15 0 1 1 108 59 L100 59 L100 100 L59 100 L59 108 A15 15 0 1 1 41 108 L41 100 L0 100 L0 59 L8 59 A15 15 0 1 0 8 41 L0 41 Z" />
+      </svg>
+    }
+  </div>
+
+  <div class="stage-wrap">
+    <div class="stage" #stage [style.--blur]="blur() + 'px'" [style.--dim]="1 - blur() / 30" [style.--u]="unit()" [style.--tin]="tileIn() + 'ms'"
+      [class.playing]="phase() === 'playing'" [class.presenting]="cardOn()" [class.sharp]="sharpAll()" [class.glow]="glow()"
+      [class.bursting]="bursting()" [class.done]="phase() === 'done'" [class.outlines-off]="outlinesOff()"
+      [class.halted]="paused() || hoverPause()" [class.logo-call]="logoCall()" [class.logo-flash]="logoFlash()">
+      <div class="frame">
+        <img class="base" [src]="pic.src" [attr.srcset]="pic.srcset" sizes="(max-width: 900px) 100vw, 1600px" width="2400" height="1350"
+          alt="The SCHLUSS retail world: receiving stock, warehousing, stock management, labelling, picking, the store and checkout, transport and happy customers – every operation connected to SCHLUSS."
+          fetchpriority="high" decoding="async" (load)="imageLoaded($event)" />
+        <img class="full" [src]="imgSrc()" alt="" aria-hidden="true" decoding="async" />
+      </div>
+
+      @if (enabled()) {
+        <svg class="board" [attr.viewBox]="'0 0 ' + vw + ' ' + vh" preserveAspectRatio="none" aria-hidden="true">
+          <defs>
+            @for (sl of slots(); track sl.n) { <clipPath [attr.id]="'abc-' + sl.n"><path [attr.d]="sl.cell.d" /></clipPath> }
+            <radialGradient id="ab-hole" cx="50%" cy="45%" r="70%"><stop offset="0" stop-color="#1b1660" /><stop offset="1" stop-color="#05051f" /></radialGradient>
+          </defs>
+          @if (!sharpAll()) {
+            @for (sl of placedSlots(); track sl.n) { <image class="sharp-piece" [attr.href]="imgSrc()" x="0" y="0" [attr.width]="vw" [attr.height]="vh" [attr.clip-path]="'url(#abc-' + sl.n + ')'" /> }
+          }
+          <g class="outlines">@for (c of cells(); track c.i) { <path [attr.d]="c.d" /> }</g>
+          @for (sl of missing(); track sl.n) {
+            <g class="hole" [class.lit]="lit() === sl.n" [style.--hue]="sl.piece.hue">
+              <path class="hole-fill" [attr.d]="sl.cell.d" />
+              <path class="hole-edge" [attr.d]="sl.cell.d" />
+            </g>
+          }
+          @for (sl of placedSlots(); track sl.n) {
+            @if (flash() === sl.n) { <path class="lock" [attr.d]="sl.cell.d" [style.--hue]="sl.piece.hue" /> }
+          }
+          <!-- the centre: reserved for the SCHLUSS logo, always the final piece -->
+          @if (!logoPlaced()) {
+            <g class="logo-hole" [attr.transform]="logoBox().t">
+              <path class="lh-fill" [attr.d]="logoPath" />
+              <path class="lh-edge" [attr.d]="logoPath" />
+            </g>
+          }
+        </svg>
+
+        <!-- glowing threads from the crew's hands to the opened piece -->
+        @if (beams().length) {
+          <svg class="beams" [attr.viewBox]="'0 0 ' + vw + ' ' + vh" preserveAspectRatio="none" aria-hidden="true">
+            @for (b of beams(); track $index) {
+              <line class="bm-glow" [attr.x1]="b.x1" [attr.y1]="b.y1" [attr.x2]="b.x2" [attr.y2]="b.y2" [style.stroke]="b.c" />
+              <line class="bm" [attr.x1]="b.x1" [attr.y1]="b.y1" [attr.x2]="b.x2" [attr.y2]="b.y2" />
+            }
+          </svg>
+        }
+
+        <!-- the crew: people who collect, open, carry and place the pieces together -->
+        <div class="crew" aria-hidden="true">
+          @for (m of crew(); track m.k) {
+            <div class="walker idle" [attr.data-k]="m.k" [class.flip]="m.x > vw / 2" [style.left.%]="m.x / vw * 100" [style.top.%]="m.y / vh * 100" [style.width.%]="m.w" [style.height.%]="m.h">
+              <sch-crew-person [look]="m.look" />
+            </div>
+          }
+        </div>
+
+        <!-- the missing pieces, floating around the puzzle until it is their turn -->
+        @for (sl of missing(); track sl.n) {
+          <div class="fp" [attr.data-n]="sl.n" [style.--hue]="sl.piece.hue"
+            [class.waiting]="!floating().has(sl.n) && current() !== sl.n" [class.active]="current() === sl.n" [class.hl]="lit() === sl.n"
+            [style.left.%]="sl.cell.bx / vw * 100" [style.top.%]="sl.cell.by / vh * 100" [style.width.%]="sl.cell.bw / vw * 100" [style.height.%]="sl.cell.bh / vh * 100"
+            [style.transform]="homePose(sl)">
+            <div class="drift" [style.--dx]="sl.dx + 'px'" [style.--dy]="sl.dy + 'px'" [style.--dr]="sl.dr + 'deg'" [style.animation-duration.s]="sl.dur" [style.animation-delay.s]="sl.delay">
+              <svg [attr.viewBox]="sl.cell.bx + ' ' + sl.cell.by + ' ' + sl.cell.bw + ' ' + sl.cell.bh" aria-hidden="true">
+                <defs><clipPath [attr.id]="'abf-' + sl.n"><path [attr.d]="sl.cell.d" /></clipPath></defs>
+                <path class="fp-glow" [attr.d]="sl.cell.d" />
+                <image [attr.href]="imgSrc()" x="0" y="0" [attr.width]="vw" [attr.height]="vh" [attr.clip-path]="'url(#abf-' + sl.n + ')'" />
+                <path class="fp-edge" [attr.d]="sl.cell.d" />
+              </svg>
+            </div>
+          </div>
+        }
+      }
+
+      <!-- the SCHLUSS logo: the final centre piece -->
+      @if (enabled() && logoOn()) {
+        @let lb = logoBox();
+        <div class="logo-piece" [class.placed]="logoPlaced()" [style.left.%]="lb.x / vw * 100" [style.top.%]="lb.y / vh * 100" [style.width.%]="lb.w / vw * 100" [style.height.%]="lb.h / vh * 100">
+          <svg viewBox="-30 -30 160 160" role="img" aria-label="SCHLUSS">
+            <defs>
+              <linearGradient id="lp-fill" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1d2a78" /><stop offset="1" stop-color="#0b0f3a" /></linearGradient>
+              <radialGradient id="lp-shine" cx="30%" cy="20%" r="80%"><stop offset="0" stop-color="#fff" stop-opacity=".28" /><stop offset=".6" stop-color="#fff" stop-opacity="0" /></radialGradient>
+            </defs>
+            <path class="lp-glow" [attr.d]="logoPath" />
+            <path [attr.d]="logoPath" fill="url(#lp-fill)" />
+            <path [attr.d]="logoPath" fill="url(#lp-shine)" />
+            <path class="lp-edge" [attr.d]="logoPath" />
+            <g transform="translate(24 10) scale(.26)">
+              @for (d of markPieces; track $index) { <path [attr.d]="d" [attr.fill]="$index === 3 ? '#3282f6' : '#eef1f6'" stroke="#0d1240" stroke-width="7" stroke-linejoin="round" /> }
+            </g>
+            <g transform="translate(17 72) scale(.0107) translate(0 1399)">
+              @for (d of wordmark; track $index) { <path [attr.d]="d" [attr.fill]="$last ? '#3282f6' : '#eef1f6'" /> }
+            </g>
+          </svg>
+        </div>
+      }
+      @if (logoFlash()) {
+        <div class="lock-ring" aria-hidden="true"></div>
+        <div class="lock-wave" aria-hidden="true"></div>
+      }
+
+      @if (mode() === 'wide' && cardOn() && slot(); as sl) {
+        <div class="tile" #tile aria-live="polite" [style.left.%]="(tileBox()?.left ?? 840) / vw * 100" [style.width.%]="(tileBox()?.width ?? 600) / vw * 100"
+          (mouseenter)="hover(true)" (mouseleave)="hover(false)" (focusin)="hover(true)" (focusout)="hover(false)">
+          <sch-story-card [piece]="sl.piece" [step]="stepLabel()" [still]="reduced()" />
+        </div>
+      }
+
+      @if (bursting()) {
+        <div class="burst" aria-hidden="true">
+          @for (c of cells(); track c.i) {
+            <div class="bp" [attr.data-cx]="c.cx" [attr.data-cy]="c.cy" [attr.data-k]="c.i"
+              [style.left.%]="c.bx / vw * 100" [style.top.%]="c.by / vh * 100" [style.width.%]="c.bw / vw * 100" [style.height.%]="c.bh / vh * 100">
+              <svg [attr.viewBox]="c.bx + ' ' + c.by + ' ' + c.bw + ' ' + c.bh">
+                <defs><clipPath [attr.id]="'abb-' + c.i"><path [attr.d]="c.d" /></clipPath></defs>
+                <image [attr.href]="imgSrc()" x="0" y="0" [attr.width]="vw" [attr.height]="vh" [attr.clip-path]="'url(#abb-' + c.i + ')'" />
+                <path class="bp-edge" [attr.d]="c.d" />
+              </svg>
+            </div>
+          }
+          <div class="flash-burst"></div>
+          @for (p of sparks; track p.k) {
+            <span class="spark" [class.pc]="p.piece" [attr.data-x]="p.x" [attr.data-y]="p.y" [attr.data-k]="p.k" [style.width.px]="p.s" [style.height.px]="p.s" [style.--c]="p.c"></span>
+          }
+        </div>
+      }
+
+      @if (phase() === 'done' && !bursting() && enabled()) {
+        <button type="button" class="replay" (click)="replay()" aria-label="Replay the SCHLUSS story" title="Replay the SCHLUSS story">
+          <svg viewBox="-14 -14 136 136" aria-hidden="true"><path d="M0 0 L41 0 L41 8 A15 15 0 1 0 59 8 L59 0 L100 0 L100 41 L108 41 A15 15 0 1 1 108 59 L100 59 L100 100 L59 100 L59 108 A15 15 0 1 1 41 108 L41 100 L0 100 L0 59 L8 59 A15 15 0 1 0 8 41 L0 41 Z" /><path class="ic" d="M36 30 L72 50 L36 70 Z" /></svg>
+          <span class="tip" aria-hidden="true">Replay the SCHLUSS story</span>
+        </button>
+      }
+    </div>
+  </div>
+
+  @if (mode() === 'narrow' && phase() === 'playing') {
+    <div class="caption" aria-live="polite">
+      @if (cardOn() && slot(); as sl) {
+        <div class="tile-narrow" #tile (focusin)="hover(true)" (focusout)="hover(false)">
+          <sch-story-card [piece]="sl.piece" [step]="stepLabel()" [compact]="true" [still]="reduced()" />
+        </div>
+      }
+    </div>
+  }
+
+  <div class="story-bar" [class.done]="phase() === 'done' || logoPlaced()">
+    @if (phase() === 'done' || logoPlaced()) {
+      <div class="statement">
+        <p class="big">{{ s?.finalTitle || 'SCHLUSS – the final piece of the puzzle.' }}</p>
+        @if (s?.finalText) { <p class="small">{{ s?.finalText }}</p> }
+      </div>
+    } @else if (enabled()) {
+      <span class="dots" aria-hidden="true">@for (sl of slots(); track sl.n) { <i [class.on]="placed().has(sl.n)" [class.cur]="current() === sl.n" [style.--hue]="sl.piece.hue"></i> }</span>
+      <span class="sr-only" aria-live="polite">{{ stepLabel() }}</span>
+      <span class="ctl">
+        <button type="button" class="ib" (click)="togglePause()" [attr.aria-pressed]="paused()" [attr.aria-label]="paused() ? 'Resume the animation' : 'Pause the animation'" [title]="paused() ? 'Resume' : 'Pause'" [disabled]="phase() !== 'playing'">
+          @if (paused()) { <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5l11 7-11 7z" /></svg> } @else { <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z" /></svg> }
+        </button>
+        <button type="button" class="ib" (click)="next()" [disabled]="!cardOn()" aria-label="Next piece" title="Next piece"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5l9 7-9 7zM16 5h2.5v14H16z" /></svg></button>
+        <button type="button" class="ib txt" (click)="skip()" [disabled]="!slots().length">Skip</button>
+      </span>
+    }
+  </div>
+</section>
+
+@let a = about();
+@if (a && (a.intro || a.body.length)) {
+  <section class="about-us" aria-labelledby="about-us-h">
+    <div class="au-inner">
+      <span class="au-eyebrow">About us</span>
+      <h2 id="about-us-h">{{ a.title }}</h2>
+      @if (a.intro) { <p class="au-lead">{{ a.intro }}</p> }
+      @for (para of a.body; track $index) { @if (para.trim()) { <p>{{ para }}</p> } }
+      <div class="au-ctas"><a class="btn btn-primary" routerLink="/products">Explore our products</a><a class="btn btn-ghost" routerLink="/contact">Contact us</a></div>
+    </div>
+  </section>
+}

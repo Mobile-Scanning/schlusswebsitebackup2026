@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SCHLUSS</title>
+  <style>
+    body { background: #07090D; color: #C4CBD6; font: 16px/1.6 system-ui, "Segoe UI", sans-serif; display: grid; place-items: center; min-height: 100vh; margin: 0; padding: 24px; box-sizing: border-box; }
+    main { max-width: 560px; }
+    h1 { color: #fff; font-size: 26px; margin: 0 0 6px; }
+    .box { background: #101522; border: 1px solid #232b3d; border-radius: 14px; padding: 18px 20px; margin-top: 18px; }
+    ol { margin: 8px 0 0; padding-left: 22px; } li { margin: 6px 0; }
+    strong { color: #fff; } code { background: #1a2133; padding: 2px 6px; border-radius: 6px; color: #9fd0ff; }
+    a { color: #63A6FF; } .muted { color: #8792a6; font-size: 14px; }
+    .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: #F5A524; margin-right: 8px; animation: p 1.2s infinite; }
+    @keyframes p { 50% { opacity: .3; } }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>SCHLUSS</h1>
+    <p id="status"><span class="dot"></span>Looking for the website on this computer…</p>
+    <div class="box" id="help" hidden>
+      <strong>The website isn’t running yet.</strong>
+      <p style="margin: 8px 0 4px"><strong style="font-weight:600">So you never have to start it again:</strong> in this folder, double-click <code>INSTALL-AUTOSTART.bat</code> once. The website then runs by itself in the background every time you sign in to Windows, and this page simply opens it.</p>
+      <p style="margin: 8px 0 0">Just for now: double-click <code>START.bat</code> and keep its black window open.</p>
+      <p style="margin: 8px 0 0">This page opens the website by itself as soon as it is ready.</p>
+      <p class="muted">The website needs its program and database running, so it can’t work from this file alone. Your products, videos and customers are in the database on this computer.</p>
+    </div>
+    <p class="muted" id="alt" hidden>Only want to look at the design without the program? <a href="preview/index.html">Open the look-only preview</a> (no sign-in, nothing is saved).</p>
+  </main>
+  <script>
+    // The running website answers on one of these addresses (START.bat uses 4200; "npm run start:prod" uses 4000).
+    var sites = ['http://localhost:4200', 'http://localhost:4000'];
+    var tries = 0, found = false;
+    function look() {
+      tries++;
+      var left = sites.length;
+      sites.forEach(function (base) {
+        fetch(base + '/api/health', { mode: 'no-cors', cache: 'no-store' })
+          .then(function () { if (!found) { found = true; document.getElementById('status').textContent = 'Opening the website…'; location.replace(base + '/'); } })
+          .catch(function () {})
+          .then(function () {
+            left--;
+            if (!left && !found) {
+              if (tries >= 2) {
+                document.getElementById('help').hidden = false;
+                document.getElementById('alt').hidden = false;
+                document.getElementById('status').innerHTML = '<span class="dot"></span>Waiting for the website to start…';
+              }
+              setTimeout(look, 2000);
+            }
+          });
+      });
+    }
+    look();
+  </script>
+</body>
+</html>

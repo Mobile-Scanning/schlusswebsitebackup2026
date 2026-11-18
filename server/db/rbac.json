@@ -1,0 +1,287 @@
+{
+  "permissions": {
+    "dashboard.view": [
+      "dashboard",
+      "View the admin dashboard"
+    ],
+    "products.view": [
+      "products",
+      "View products (including drafts)"
+    ],
+    "products.manage": [
+      "products",
+      "Create and edit products, features, media and learning material"
+    ],
+    "products.publish": [
+      "products",
+      "Publish, unpublish, archive and mark products coming soon"
+    ],
+    "categories.manage": [
+      "products",
+      "Create, edit, reorder and delete categories"
+    ],
+    "pricing.manage": [
+      "products",
+      "Manage product plans and pricing"
+    ],
+    "versions.manage": [
+      "products",
+      "Upload, release, roll back and withdraw product versions"
+    ],
+    "media.manage": [
+      "content",
+      "Upload and manage files in the media library"
+    ],
+    "content.manage": [
+      "content",
+      "Edit website content, banners, announcements and FAQs"
+    ],
+    "customers.view": [
+      "customers",
+      "View customer records"
+    ],
+    "customers.manage": [
+      "customers",
+      "Edit customer records and assign service providers"
+    ],
+    "downloads.view": [
+      "customers",
+      "View download history"
+    ],
+    "licences.view": [
+      "licences",
+      "View licences, trials and activations"
+    ],
+    "licences.manage": [
+      "licences",
+      "Create, extend, suspend, revoke and reactivate licences"
+    ],
+    "demos.view": [
+      "sales",
+      "View demo requests"
+    ],
+    "demos.manage": [
+      "sales",
+      "Assign and update demo requests"
+    ],
+    "quotes.manage": [
+      "sales",
+      "Manage quote and reactivation requests"
+    ],
+    "partners.view": [
+      "partners",
+      "View partners and applications"
+    ],
+    "partners.manage": [
+      "partners",
+      "Edit partners, assign products, set commission rules"
+    ],
+    "partners.approve": [
+      "partners",
+      "Approve, reject and suspend partners"
+    ],
+    "commissions.manage": [
+      "partners",
+      "Approve commissions and record payments"
+    ],
+    "support.view": [
+      "support",
+      "View support tickets"
+    ],
+    "support.manage": [
+      "support",
+      "Reply to, assign and close support tickets"
+    ],
+    "email_templates.manage": [
+      "system",
+      "Edit email templates"
+    ],
+    "reports.view": [
+      "reports",
+      "View reports"
+    ],
+    "reports.export": [
+      "reports",
+      "Export reports to CSV/PDF"
+    ],
+    "audit.view": [
+      "system",
+      "View audit logs"
+    ],
+    "privacy.manage": [
+      "system",
+      "Handle POPIA data requests"
+    ],
+    "users.manage": [
+      "system",
+      "Manage staff accounts and their roles"
+    ],
+    "roles.manage": [
+      "system",
+      "Edit roles and permissions"
+    ],
+    "settings.manage": [
+      "system",
+      "Change system settings"
+    ],
+    "leads.view": [
+      "support",
+      "View potential leads"
+    ],
+    "leads.manage": [
+      "support",
+      "Work potential leads: contact attempts, notes, status"
+    ],
+    "sales.view": [
+      "sales",
+      "View sales enquiries"
+    ],
+    "sales.manage": [
+      "sales",
+      "Manage sales enquiries, quotations and outcomes"
+    ],
+    "businesses.manage": [
+      "customers",
+      "Create and edit businesses and link customers"
+    ],
+    "whatsapp.manage": [
+      "system",
+      "Configure the WhatsApp Business integration"
+    ],
+    "email_settings.manage": [
+      "system",
+      "Configure department email addresses and test email delivery"
+    ]
+  },
+  "roles": {
+    "super_admin": {
+      "name": "Super Administrator",
+      "description": "Full access to everything",
+      "permissions": [
+        "*"
+      ]
+    },
+    "administrator": {
+      "name": "Administrator",
+      "description": "Everything except roles and system settings",
+      "permissions": [
+        "*",
+        "!roles.manage",
+        "!settings.manage"
+      ]
+    },
+    "product_manager": {
+      "name": "Product Manager",
+      "description": "Products, versions, pricing and learning material",
+      "permissions": [
+        "dashboard.view",
+        "products.view",
+        "products.manage",
+        "products.publish",
+        "categories.manage",
+        "pricing.manage",
+        "versions.manage",
+        "media.manage",
+        "downloads.view",
+        "reports.view"
+      ]
+    },
+    "sales_manager": {
+      "name": "Sales Manager",
+      "description": "Customers, demos, quotes, licences and partners",
+      "permissions": [
+        "dashboard.view",
+        "products.view",
+        "customers.view",
+        "customers.manage",
+        "downloads.view",
+        "licences.view",
+        "licences.manage",
+        "demos.view",
+        "demos.manage",
+        "quotes.manage",
+        "partners.view",
+        "partners.manage",
+        "reports.view",
+        "reports.export",
+        "sales.view",
+        "sales.manage",
+        "leads.view",
+        "businesses.manage"
+      ]
+    },
+    "support_manager": {
+      "name": "Support Manager",
+      "description": "Support tickets and customer licence lookups",
+      "permissions": [
+        "dashboard.view",
+        "products.view",
+        "customers.view",
+        "downloads.view",
+        "licences.view",
+        "support.view",
+        "support.manage",
+        "partners.view",
+        "leads.view",
+        "leads.manage"
+      ]
+    },
+    "content_manager": {
+      "name": "Content Manager",
+      "description": "Website content, media and learning material",
+      "permissions": [
+        "dashboard.view",
+        "products.view",
+        "products.manage",
+        "media.manage",
+        "content.manage",
+        "email_templates.manage"
+      ]
+    },
+    "read_only": {
+      "name": "Read-only Staff",
+      "description": "View-only access to the admin portal",
+      "permissions": [
+        "dashboard.view",
+        "products.view",
+        "customers.view",
+        "downloads.view",
+        "licences.view",
+        "demos.view",
+        "partners.view",
+        "support.view",
+        "reports.view",
+        "leads.view",
+        "sales.view"
+      ]
+    },
+    "support_agent": {
+      "name": "Support Agent",
+      "description": "Support inbox, chat & WhatsApp conversations, potential leads",
+      "permissions": [
+        "dashboard.view",
+        "products.view",
+        "customers.view",
+        "downloads.view",
+        "licences.view",
+        "support.view",
+        "support.manage",
+        "leads.view",
+        "leads.manage"
+      ]
+    },
+    "sales_agent": {
+      "name": "Sales Agent",
+      "description": "Sales enquiries, quotations and outcomes",
+      "permissions": [
+        "dashboard.view",
+        "products.view",
+        "customers.view",
+        "licences.view",
+        "sales.view",
+        "sales.manage",
+        "quotes.manage"
+      ]
+    }
+  }
+}
