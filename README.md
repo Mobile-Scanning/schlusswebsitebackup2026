@@ -103,3 +103,4 @@ See `claude/phase-1-architecture-report.md` in the SCHLUSS project for the full 
 4. **Website content** – edit home page text, About, Partner page, contact details, footer and an announcement banner. Contact details stay hidden until filled in.
 5. **Demo requests / Business partners / Enquiries** – everything submitted on the website lands here; customers get an emailed reference number.
 # schlusswebsitebackup2026
+# schlusswebsitebackup2026
